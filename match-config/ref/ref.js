@@ -1,18 +1,19 @@
-
+console.log("start!");
 const rows = 7;
 const columns = 6;
 const numColors = 2;
 let board = Array.from({ length: columns }, () => new Array(rows).fill(0));
 
 
-printBoard();
 
-for(let color = 1; color<=numColors;color++){
-    console.log("checking if",color,"won");
-    if(isWin(color)){
-        console.log(color,"won!");
-    }
-}
+// printBoard();
+
+// for(let color = 1; color<=numColors;color++){
+//     console.log("checking if",color,"won");
+//     if(isWin(color)){
+//         console.log(color,"won!");
+//     }
+// }
 
 async function move(req){
 
@@ -71,7 +72,7 @@ function isWin(color){
                     }
                 }
                 if(rightDownDiagonalCount >= 4){
-                    console.log("won becuase of rightDownDiagonal");
+                    // console.log("won becuase of rightDownDiagonal");
                     return true;
                 }
 
@@ -88,7 +89,7 @@ function isWin(color){
                     }
                 }
                 if(leftDownDiagonalCount >= 4){
-                    console.log("won becuase of leftDownDiagonal");
+                    // console.log("won becuase of leftDownDiagonal");
                     return true;
                 }
             }
@@ -152,10 +153,118 @@ function printBoard(){
         process.stdout.write("]\n");
     }
 }
-
-const server = Bun.serve({
-    port: 3000,
-    routes:{
-        "/move": req=> move(req)
+function canPlay(){
+    for(let column of board){
+        for(let row of column){
+            if(row === 0){
+                return true;
+            }
+        }
     }
-});
+    return false;
+}
+
+// const server = Bun.serve({
+//     port: 3000,
+//     routes:{
+//         "/move": req=> move(req)
+//     }
+// });
+const totalGames = 1000;
+let playedGames = 0;
+
+let p1Wins = 0;
+let p1Losses = 0;
+let ties = 0;
+let p2Wins = 0;
+let p2Losses = 0;
+
+async function init(){
+    console.log("init...");
+    const startp1 = fetch("http://p1:3001/start");
+    const startp2 = fetch("http://p2:3001/start");
+
+    await startp1;
+    await startp2;
+
+    while(playedGames < totalGames){
+        let aborted = false;
+        // console.log("starting new game");
+        while(1){
+
+            if(!canPlay()){
+                console.log("cant play! foreced tie!");
+                printBoard();
+                ties++;
+                break;
+            }
+
+            // printBoard();
+            // console.log("ref board -> p1",JSON.stringify({board : board}));
+            const resp1 = await fetch("http://p1:3001/move",{
+                method: "POST",
+                body: JSON.stringify({board : board})
+            });
+
+            
+
+            // console.log("reading p1 move");
+            // const textp1 = await resp1.text();
+            // console.log("p1 text!",textp1);
+            const movep1 = await resp1.json();
+            if(!play(movep1.row, 1)){
+                console.log("bad move!");
+                aborted = true;
+                break;
+            }
+
+            if(isWin(1)){
+                // console.log("1 won!");
+                p1Wins++;
+                p2Losses++;
+                break;
+            }
+
+            const resp2 = await fetch("http://p2:3001/move",{
+                method: "POST",
+                body: JSON.stringify({board: board})
+            });
+            // console.log("readig p2 move");
+            const movep2 = await resp2.json();
+            if(!play(movep2.row,2)){
+                console.log("bad move!");
+                aborted = true;
+                break;
+            }
+            if(isWin(2)){
+                p2Wins++;
+                p1Losses++;
+                break;
+            }
+
+        }
+
+        if(aborted){
+
+        } else{
+            playedGames++;
+        }
+        board = Array.from({ length: columns }, () => new Array(rows).fill(0));
+
+        const resetp1 = fetch("http://p1:3001/reset");
+        const resetp2 = fetch("http://p2:3001/reset");
+
+        await resetp1;
+        await resetp2;
+    }
+
+    console.log(`p1 stats wins ${p1Wins}, losses ${p1Losses}`);
+    console.log(`p2 stats wins ${p2Wins}, losses ${p2Losses}`);
+    console.log(`ties ${ties} played games ${playedGames}`);
+
+    fetch("http://p1:3001/end");
+    fetch("http://p2:3001/end");
+
+}
+
+init();
