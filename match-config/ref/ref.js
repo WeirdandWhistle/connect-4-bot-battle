@@ -1,3 +1,5 @@
+import { nanoseconds } from "bun";
+
 console.log("start!");
 const rows = 7;
 const columns = 6;
@@ -180,16 +182,22 @@ let p2Wins = 0;
 let p2Losses = 0;
 
 async function init(){
+
+    const startTimeNano = nanoseconds();
+
     console.log("init...");
     const startp1 = fetch("http://p1:3001/start");
     const startp2 = fetch("http://p2:3001/start");
 
     await startp1;
     await startp2;
-
+    let totalTurns = 0;
+    let peakGameTimeNano = 0;
+    let minGameTimeNano = 1000;
     while(playedGames < totalGames){
         let aborted = false;
         // console.log("starting new game");
+        let gameTimeNano = nanoseconds();
         while(1){
 
             if(!canPlay()){
@@ -217,6 +225,7 @@ async function init(){
                 aborted = true;
                 break;
             }
+            totalTurns++;
 
             if(isWin(1)){
                 // console.log("1 won!");
@@ -236,6 +245,7 @@ async function init(){
                 aborted = true;
                 break;
             }
+            totalTurns++;
             if(isWin(2)){
                 p2Wins++;
                 p1Losses++;
@@ -243,6 +253,9 @@ async function init(){
             }
 
         }
+
+        peakGameTimeNano = Math.max(peakGameTimeNano, nanoseconds() - gameTimeNano);
+        minGameTimeNano = Math.min(minGameTimeNano, nanoseconds() - gameTimeNano);
 
         if(aborted){
 
@@ -264,6 +277,24 @@ async function init(){
 
     fetch("http://p1:3001/end");
     fetch("http://p2:3001/end");
+
+    const endTimeNano = nanoseconds();
+    const timeRanNano = endTimeNano - startTimeNano;
+
+    const timeRanSec = timeRanNano / 1E9;
+    const avgTurnTimeSec = timeRanSec / totalTurns;
+    const avgTimePerGame = timeRanSec / playedGames;
+    const peakGameTimeSec = peakGameTimeNano / 1E9;
+    const minGameTimeSec = minGameTimeNano / 1E9;
+
+    const returnJson = {p1Wins: p1Wins, p1Losses: p1Losses, p2Wins: p2Wins, p2Losses: p2Losses, ties: ties,
+        timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
+        peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec};
+
+    fetch("http://host.docker.internal:2999/api/record",{
+        method: "POST",
+        body: JSON.stringify(returnJson)
+    });
 
 }
 

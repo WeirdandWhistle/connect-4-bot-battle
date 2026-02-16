@@ -5,14 +5,26 @@ services:
       - p1-net
       - p2-net
       - to-api
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
   p1:
     build: ./p1
     networks:
       - p1-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
   p2:
     build: ./p2
     networks:
       - p2-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
 networks:
   p1-net:
