@@ -4,16 +4,6 @@ const columns = 6;
 const numColors = 2;
 let board = Array.from({ length: columns }, () => new Array(rows).fill(0));
 
-play(0,1);
-play(1,2);
-play(1,1);
-play(2,2);
-play(2,2);
-play(2,1);
-play(3,2);
-play(3,2);
-play(3,2);
-play(3,1);
 
 printBoard();
 

@@ -1,0 +1,23 @@
+services:
+  ref:
+  build: ./ref
+  networks:
+    - p1-net
+    - p2-net
+    - to-api
+  p1:
+    build: ./p1
+    networks:
+      - p1-net
+  p2:
+    build: ./p2
+    networks:
+      - p2-net
+
+networks:
+  p1-net:
+    internal: true
+  p2-net:
+    internal: true
+  to-api:
+  internal: false
