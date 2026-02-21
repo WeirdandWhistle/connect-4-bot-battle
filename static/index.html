@@ -3,7 +3,7 @@
     <head>
         <link rel="stylesheet" href="stylesheet.css">
     </head>
-    <body>
+    <body id="everything">
         <div class="main-heading">
             <h1>Connect 4 Bot Battles!</h1>
         </div>
@@ -23,22 +23,34 @@
                     <span>WIN RATE</span>
                     <span>AVG TURNS</span>
                     <span>TURN TIME</span>
-                    <span>VERSION</span>
                     <span>PLAY</span>
                 </rank-template>
-                <rank><span>1</span><span>Gary</span><span>3500</span><span>1B</span><span>0</span><span>0</span><span style="--percent: 100">100%</span><span>4</span><span>0.000001ms</span><span>1.0.0v</span><span>NO</span></rank>
-                <rank><span>2</span><span>Joe</span><span>2700</span><span>700M</span><span>2.5M</span><span>500K</span><span style="--percent: 70">70%</span><span>28</span><span>0.69ms</span><span>3.1.7v</span><span>Anytime</span></rank>
-                <rank>bob</rank>
+                <rank><span>1</span><span>Gary</span><span>3500</span><span>1B</span><span>0</span><span>0</span><span style="--percent: 100">100%</span><span>4</span><span>0.000001ms</span><span>NO</span></rank>
+                <rank><span>2</span><span>Joe</span><span>2700</span><span>700M</span><span>2.5M</span><span>500K</span><span style="--percent: 70">70%</span><span>28</span><span>0.69ms</span><span>Anytime</span></rank>
+                
             </div>
             <div class="big-border"></div>
             <div class="upload-form">
-                <h3>Upload Your Bot Here</h3>
+                <h1>Upload Your Bot Here</h1>
+                <h4>Don't know how to make a bot? Check out the <a href="quickstart">quickstart guide.</a></h4>
                 <step>
                     <h4>Step 1:</h4>
                     <p>Create your bot and select the .js file</p>
                     <input type="file" accept=".js">
                 </step>
+                <step>
+                    <h4>Step 2:</h4>
+                    <p>Name your bot</p>
+                    <input>
+                </step>
+                <step>
+                    <h4>Step 3:</h4>
+                    <p>Click upload</p>
+                    <button class="upload-button" onclick="uploadBot()"> upload</button>
+                </step>
+                
             </div>
         </div>
+        <script src="app.js"></script>
     </body>
 </html>
