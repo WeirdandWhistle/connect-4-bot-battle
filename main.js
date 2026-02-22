@@ -14,6 +14,14 @@ await db`CREATE TABLE IF NOT EXISTS bot_data (name TEXT,  rank INT, rating INT, 
 let matchQue = [];
 const baseBot = "random.js";
 
+if((await db`SELECT wins FROM bot_data WHERE name='baseBot' LIMIT 1;`).count === 0){
+	await db`INSERT INTO bot_data (name, rank, rating, wins, losses, ties, total_turns, games_played, turn_time, file_name)
+	VALUES ('baseBot', -1, 1200, 0, 0, 0, 0, 0, 0, ${baseBot});`;
+
+}
+
+let jsonDataFromCurrentMatch = null;
+
 async function input(){
     for await(const inputs of console){
         return inputs;
@@ -24,6 +32,8 @@ async function record(req){
     console.log("API recoreded");
     const json = await req.json();
     console.log("raw json",json);
+
+	jsonDataFromCurrentMatch = json;
 
     // const p1 = {wins: json.p1Wins};
 
@@ -49,6 +59,9 @@ async function upload(req){
 
 	await db`INSERT INTO bot_data (name, rank, rating, wins, losses, ties, total_turns, games_played, turn_time, file_name)
 	VALUES (${name}, -1, 1200, 0, 0, 0, 0, 0, 0, ${fileName});`;
+
+	matchQue.push(`${name}`);
+	console.log("added",name,"to match que!");
 	
 	await Bun.write(`upload/${name}.js`,file);
 	return new Response("OK",{
@@ -63,6 +76,20 @@ async function stats(req){
         headers: {"Access-Control-Allow-Origin":"*"}
     });
 }
+async function play(req){
+	const url = new URL(req.url);
+	const query = url.searchParams;
+
+	if(!query.has("name")){
+		return new Response("NEED SEARCH QUERY NAME!");
+	}
+
+	const name = query.get("name");
+	
+	matchQue.push(name);
+	
+	return new Response("OK");
+}
 
 const server = Bun.serve({
     port: 5000,
@@ -71,11 +98,44 @@ const server = Bun.serve({
         "/api/record": req => record(req),
         "/api/upload": req => upload(req),
         "/api/stats": req => stats(req),
+	"/api/play": req => play(req),
 	"/api": new Response("YOU HAEV REACHED THE API")
     }
 });
 
 console.log("main.js now running on",server.url);
+
+async function runMatch(){
+	//console.log("Checking match que...");
+	if(matchQue.length === 0){
+		setTimeout(async () => runMatch(), 10 * 1000);
+		return;
+	}
+	console.log("running match...");
+
+	const name = matchQue[0];
+	matchQue.shift();
+
+	const fileName = (await db`SELECT file_name FROM bot_data WHERE name=${name} LIMIT 1;`)[0].file_name;
+	console.log("file name",fileName);
+
+	// base case
+	await $`cp upload/${fileName} match-config/p1/src/app.js`;
+	await $`cp upload/${baseBot} match-config/p2/src/app.js`;
+	await $`cd match-config; docker compose up --build; docker compose down`;
+
+	const json = jsonDataFromCurrentMatch;
+
+	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${name};`;
+	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name='baseBot';`;
+
+
+
+	//console.log(await db`SELECT * FROM bot_data WHERE name=${name} LIMIT 1;`);
+	
+	setTimeout(async()=>runMatch(), 10 * 1000);
+}
+runMatch();
 
 //let out = await $`cd match-config; docker compose up --build; docker compose down`.text();
 //console.log(out);

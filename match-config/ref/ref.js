@@ -291,7 +291,7 @@ async function init(){
         timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
         peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec};
 
-    fetch("http://host.docker.internal:2999/api/record",{
+    fetch("http://host.docker.internal:5000/api/record",{
         method: "POST",
         body: JSON.stringify(returnJson)
     });

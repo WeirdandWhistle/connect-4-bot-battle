@@ -43,7 +43,7 @@ function uploadBot(){
 
     for(const json of jsonData){
 
-    const winRate = json.wins/json.games_played * 100;
+    const winRate = Math.round(json.wins/json.games_played * 100 * 10)  / 10;
     let avgTurns = json.total_turns/json.games_played;
     avgTurns = Math.floor(avgTurns*10)/10;
     console.log("filling stats!");
