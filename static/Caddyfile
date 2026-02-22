@@ -1,0 +1,4 @@
+:5001 {
+	root * /app
+	file_server
+}

@@ -31,14 +31,14 @@ function uploadBot(){
     formData.append("name",botName.value);
     formData.append("file", botFile.files[0]);
 
-    fetch("http://localhost:2999/api/upload",{
+    fetch("/api/upload",{
         method:"POST",
         body: formData
     });
 }
 
 (async ()=>{
-    const res = await fetch("http://localhost:2999/api/stats");
+    const res = await fetch("/api/stats");
     const jsonData = await res.json();
 
     for(const json of jsonData){
@@ -48,7 +48,7 @@ function uploadBot(){
     avgTurns = Math.floor(avgTurns*10)/10;
     console.log("filling stats!");
     leaderboard.insertAdjacentHTML("beforeend",`
-        <rank><span>${json.rank}</span><span>${json.name}</span><span>${json.rating}</span><span>${json.wins}</span><span>${json.losses}</span><span>${json.ties}</span><span style="--percent: ${winRate}">${winRate}%</span><span>${avgTurns}</span><span>${json.turn_time}ms</span><span>💀</span></rank>
+        <rank><span>${json.rank}</span><span>${json.name}</span><span>${json.rating}</span><span>${json.wins}</span><span>${json.losses}</span><span>${json.ties}</span><span style="--percent: ${winRate}">${winRate}%</span><span>${avgTurns}</span><span>${json.turn_time}ms</span><span>( •̀ ω •́ )✧</span></rank>
         `);
     }
 })();

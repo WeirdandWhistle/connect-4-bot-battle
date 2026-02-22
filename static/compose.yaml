@@ -1,0 +1,5 @@
+services:
+  connect4-static:
+    build: .
+    ports:
+      - 5001:5001
