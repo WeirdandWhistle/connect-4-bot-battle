@@ -1,6 +1,7 @@
 const body = document.getElementById("everything");
 const botName = document.getElementById("botName");
 const botFile = document.getElementById("botFile");
+const leaderboard = document.getElementById("leaderboard");
 
 function uploadBot(){
    
@@ -35,3 +36,19 @@ function uploadBot(){
         body: formData
     });
 }
+
+(async ()=>{
+    const res = await fetch("http://localhost:2999/api/stats");
+    const jsonData = await res.json();
+
+    for(const json of jsonData){
+
+    const winRate = json.wins/json.games_played * 100;
+    let avgTurns = json.total_turns/json.games_played;
+    avgTurns = Math.floor(avgTurns*10)/10;
+    console.log("filling stats!");
+    leaderboard.insertAdjacentHTML("beforeend",`
+        <rank><span>${json.rank}</span><span>${json.name}</span><span>${json.rating}</span><span>${json.wins}</span><span>${json.losses}</span><span>${json.ties}</span><span style="--percent: ${winRate}">${winRate}%</span><span>${avgTurns}</span><span>${json.turn_time}ms</span><span>💀</span></rank>
+        `);
+    }
+})();
