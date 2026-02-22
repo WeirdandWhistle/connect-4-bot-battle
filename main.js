@@ -15,11 +15,32 @@ async function record(req){
 
     return new Response("OK");
 }
+async function upload(req){
+    console.log("recived upload requst!");
+    const formData = await req.formData();
+    const name = formData.get("name");
+    const file = formData.get("file");
+
+    console.log("file size",file.size);
+    if(file.size > 1E7){
+        return new Response("FILE TOO BIG!");
+    }
+    if(await Bun.file(`upload/${name}.js`).exists()){
+        return new Response("NAME ALREADY EXISTS!");
+    }
+
+    await Bun.write(`upload/${name}.js`,file);
+    return new Response("OK",{
+        headers: {"Access-Control-Allow-Origin":"*"}
+    });
+}
 
 const server = Bun.serve({
     port: 2999,
+    idleTimeout: 10,
     routes :{
-        "/api/record": req => record(req)
+        "/api/record": req => record(req),
+        "/api/upload": req => upload(req)
     }
 });
 
