@@ -82,7 +82,7 @@ rank{
     height: 2rem;
     padding: 0.5rem;
     transition: 0.2s;
-    grid-template-columns: 1fr 5fr repeat(8,2fr) 2rem; 
+    grid-template-columns: 1fr 5fr repeat(5,2fr) 6rem; 
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -115,7 +115,7 @@ rank span:nth-child(1){
 rank-template{
     display: grid;
     padding: 0.5rem;
-    grid-template-columns: 1fr 5fr repeat(8,2fr) 2rem;    
+    grid-template-columns: 1fr 5fr repeat(5,2fr) 6rem;    
     background-color: var(--dark);
     color: var(--light-2);
     /* border-radius: 20px 20px 0 0; */

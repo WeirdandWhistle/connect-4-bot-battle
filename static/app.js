@@ -48,7 +48,7 @@ function uploadBot(){
     avgTurns = Math.floor(avgTurns*10)/10;
     console.log("filling stats!");
     leaderboard.insertAdjacentHTML("beforeend",`
-        <rank><span>${json.rank}</span><span>${json.name}</span><span>${json.rating}</span><span>${json.wins}</span><span>${json.losses}</span><span>${json.ties}</span><span style="--percent: ${winRate}">${winRate}%</span><span>${avgTurns}</span><span>${json.turn_time}ms</span><span>( •̀ ω •́ )✧</span></rank>
+        <rank><span>${json.rank}</span><span>${json.name}</span><span>${json.rating}</span><span>${json.wins}</span><span>${json.losses}</span><span>${json.ties}</span><span style="--percent: ${winRate}">${winRate}%</span><span>( •̀ ω •́ )✧</span></rank>
         `);
     }
 })();

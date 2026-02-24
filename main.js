@@ -105,6 +105,10 @@ const server = Bun.serve({
 
 console.log("main.js now running on",server.url);
 
+function expectedScore(p1Rating, p2Rating){
+	return 1/(1 + Math.pow(10, (p2Rating - p2Rating)/400));
+}
+
 async function runMatch(){
 	//console.log("Checking match que...");
 	if(matchQue.length === 0){
@@ -129,6 +133,11 @@ async function runMatch(){
 	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${name};`;
 	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name='baseBot';`;
 
+	//update ratings
+	let p1Rating = (await db`SELECT rating FROM bot_data WHERE name=${name} LIMIT 1;`)[0].rating;
+	let p2Rating = (await db`SELECT rating FROM bot_data WHERE name='baseBot' LIMIT 1;`)[0].rating;
+
+	const p1ExpectedScore = 
 
 
 	//console.log(await db`SELECT * FROM bot_data WHERE name=${name} LIMIT 1;`);
