@@ -29,6 +29,7 @@ async function input(){
 }
 
 async function record(req){
+	console.log("record headers",req.headers);
     console.log("API recoreded");
     const json = await req.json();
     console.log("raw json",json);
@@ -105,8 +106,8 @@ const server = Bun.serve({
 
 console.log("main.js now running on",server.url);
 
-function expectedScore(p1Rating, p2Rating){
-	return 1/(1 + Math.pow(10, (p2Rating - p2Rating)/400));
+function expectedScore(RA, RB){
+	return 1/(1 + Math.pow(10, (RB - RA)/400));
 }
 
 async function runMatch(){
@@ -120,12 +121,21 @@ async function runMatch(){
 	const name = matchQue[0];
 	matchQue.shift();
 
+	const exists = await db`SELECT 1 FROM bot_data WHERE name=${name}`;
+	console.log("does it?",exists);
+
+	if(exists.length === 0){
+		console.log("no it doesn;t");
+		setTimeout(async () => runMatch(),100);
+		return;
+	}
+
 	const fileName = (await db`SELECT file_name FROM bot_data WHERE name=${name} LIMIT 1;`)[0].file_name;
 	console.log("file name",fileName);
 
 	// base case
 	await $`cp upload/${fileName} match-config/p1/src/app.js`;
-	await $`cp upload/${baseBot} match-config/p2/src/app.js`;
+	await $`cp basebots/${baseBot} match-config/p2/src/app.js`;
 	await $`cd match-config; docker compose up --build; docker compose down`;
 
 	const json = jsonDataFromCurrentMatch;
@@ -137,14 +147,30 @@ async function runMatch(){
 	let p1Rating = (await db`SELECT rating FROM bot_data WHERE name=${name} LIMIT 1;`)[0].rating;
 	let p2Rating = (await db`SELECT rating FROM bot_data WHERE name='baseBot' LIMIT 1;`)[0].rating;
 
-	const p1ExpectedScore = 
+	const p1ExpectedScore = expectedScore(p1Rating, p2Rating) * 10;
+	const p2ExpectedScore = expectedScore(p2Rating, p1Rating) * 10;
 
+	const p1ActualScore = (json.p1Wins + (json.ties / 2)) / 100;
+	const p2ActualScore = (json.p2Wins + (json.ties / 2)) / 100;
+
+	const k = 32;
+
+	const p1UpdatedRating = Math.round(p1Rating + (k * (p1ActualScore - p1ExpectedScore)));
+	const p2UpdatedRating = Math.round(p2Rating + (k * (p2ActualScore - p2ExpectedScore)));
+
+	console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
+	console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
+
+	await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${name};`;
+	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name='baseBot';`;
 
 	//console.log(await db`SELECT * FROM bot_data WHERE name=${name} LIMIT 1;`);
 	
 	setTimeout(async()=>runMatch(), 10 * 1000);
 }
 runMatch();
+
+console.log(await $`ls /`.text());
 
 //let out = await $`cd match-config; docker compose up --build; docker compose down`.text();
 //console.log(out);

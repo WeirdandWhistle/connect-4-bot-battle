@@ -1,4 +1,9 @@
 :5001 {
 	root * /app
 	file_server
+
+	handle_errors 404 {
+		rewrite /error.html
+		file_server
+	}
 }
