@@ -194,12 +194,24 @@ async function init(){
     let totalTurns = 0;
     let peakGameTimeNano = 0;
     let minGameTimeNano = 1000;
+
+	let runningTime = nanoseconds();
+	let ranTooLong = false;
+	
+	let p1AbortedGames = 0;
+	let p2AbortedGames = 0;
     while(playedGames < totalGames){
         let aborted = false;
         // console.log("starting new game");
         let gameTimeNano = nanoseconds();
+	    let firstMove = "p1";
+	    let secondMove = "p2";
         while(1){
 
+		if(nanoseconds() - runningTime > 1E9 * 30){
+			ranTooLong = true;
+		}
+		
             if(!canPlay()){
                 console.log("cant play! foreced tie!");
                 printBoard();
@@ -209,7 +221,7 @@ async function init(){
 
             // printBoard();
             // console.log("ref board -> p1",JSON.stringify({board : board}));
-            const resp1 = await fetch("http://p1:3001/move",{
+            const resp1 = await fetch(`http://${firstMove}:3001/move`,{
                 method: "POST",
                 body: JSON.stringify({board : board})
             });
@@ -223,6 +235,7 @@ async function init(){
             if(!play(movep1.row, 1)){
                 console.log("bad move!");
                 aborted = true;
+		    p1AbortedGames++;
                 break;
             }
             totalTurns++;
@@ -234,7 +247,7 @@ async function init(){
                 break;
             }
 
-            const resp2 = await fetch("http://p2:3001/move",{
+            const resp2 = await fetch(`http://${secondMove}:3001/move`,{
                 method: "POST",
                 body: JSON.stringify({board: board})
             });
@@ -243,7 +256,8 @@ async function init(){
             if(!play(movep2.row,2)){
                 console.log("bad move!");
                 aborted = true;
-                break;
+		    p2AbortedGames++;
+		    break;
             }
             totalTurns++;
             if(isWin(2)){
@@ -261,6 +275,9 @@ async function init(){
 
         } else{
             playedGames++;
+		const tmpMove = firstMove;
+		firstMove = secondMove;
+		secondMove = tmpMove;
         }
         board = Array.from({ length: columns }, () => new Array(rows).fill(0));
 
@@ -289,7 +306,8 @@ async function init(){
 
     const returnJson = {p1Wins: p1Wins, p1Losses: p1Losses, p2Wins: p2Wins, p2Losses: p2Losses, ties: ties,
         timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
-        peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec};
+        peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec, p1AbortedGames: p1AbortedGames, p2AbortedGames,
+    	ranTooLong: ranTooLong};
 
     fetch("http://host.docker.internal:5000/api/record",{
         method: "POST",
