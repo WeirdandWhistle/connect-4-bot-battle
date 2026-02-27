@@ -200,13 +200,17 @@ async function init(){
 	
 	let p1AbortedGames = 0;
 	let p2AbortedGames = 0;
+
+	    let firstMove = "p1";
+	    let secondMove = "p2";
+	    let p1First = true;
+
     while(playedGames < totalGames){
         let aborted = false;
         // console.log("starting new game");
         let gameTimeNano = nanoseconds();
-	    let firstMove = "p1";
-	    let secondMove = "p2";
-        while(1){
+	    //console.log("who goes first?",firstMove);
+	    while(1){
 
 		if(nanoseconds() - runningTime > 1E9 * 30){
 			ranTooLong = true;
@@ -235,7 +239,7 @@ async function init(){
             if(!play(movep1.row, 1)){
                 console.log("bad move!");
                 aborted = true;
-		    p1AbortedGames++;
+		    p1First ? p1AbortedGames++ : p2AbortedGames++;
                 break;
             }
             totalTurns++;
@@ -256,7 +260,7 @@ async function init(){
             if(!play(movep2.row,2)){
                 console.log("bad move!");
                 aborted = true;
-		    p2AbortedGames++;
+		    p1First ? p1AbortedGames++ : p2AbortedGames++;
 		    break;
             }
             totalTurns++;
