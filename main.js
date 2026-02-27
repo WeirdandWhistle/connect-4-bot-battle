@@ -5,7 +5,7 @@ const db = new SQL({
     adapter:"sqlite",
 });
 
-
+await $`whoami`;
 await $`mkdir -p upload`;
 await db`CREATE TABLE IF NOT EXISTS bot_data (name TEXT,  rank INT, rating INT, wins INT, losses INT, ties INT, total_turns INT, games_played INT, turn_time FLOAT, file_name TEXT);`;
 
@@ -21,6 +21,7 @@ if((await db`SELECT wins FROM bot_data WHERE name='baseBot' LIMIT 1;`).count ===
 }
 
 let jsonDataFromCurrentMatch = null;
+let jsonDataExists = false;
 
 async function input(){
     for await(const inputs of console){
@@ -35,6 +36,7 @@ async function record(req){
     console.log("raw json",json);
 
 	jsonDataFromCurrentMatch = json;
+	jsonDataExists = true;
 
     // const p1 = {wins: json.p1Wins};
 
@@ -134,14 +136,23 @@ async function runMatch(){
 	console.log("file name",fileName);
 
 	// base case
+	console.log("copying files!");
 	await $`cp upload/${fileName} match-config/p1/src/app.js`;
 	await $`cp basebots/${baseBot} match-config/p2/src/app.js`;
-	await $`cd match-config; docker compose up --build; docker compose down`;
+	console.log("starting docker!");
+	await $`export HOME=/connect4; mkdir -p HOME; cd match-config; docker compose up --build; docker compose down`;
+
+	while(!jsonDataExists){}
 
 	const json = jsonDataFromCurrentMatch;
+	jsonDataExists = false;
+	jsonDataFromCurrentMatch = null;
+	console.log("update database!");
 
 	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${name};`;
 	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name='baseBot';`;
+
+	console.log("update ratings!");
 
 	//update ratings
 	let p1Rating = (await db`SELECT rating FROM bot_data WHERE name=${name} LIMIT 1;`)[0].rating;
@@ -170,7 +181,7 @@ async function runMatch(){
 }
 runMatch();
 
-console.log(await $`ls /`.text());
+//console.log(await $`ls /mnt`.text());
 
 //let out = await $`cd match-config; docker compose up --build; docker compose down`.text();
 //console.log(out);
