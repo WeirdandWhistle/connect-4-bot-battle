@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<link rel="stylesheet" href="/stylesheet.css">
+		<link rel="stylesheet" href="../stylesheet.css">
 	</head>
 	<body>
 		<div class="main-heading">
@@ -13,6 +13,29 @@
 			</p>
 		</div>
 		<hr>
+		<div class="small-border"></div>
+		<div class="main-body">
+		<section>
+			<h1>Part 1: Template Bot</h1>
+		</section>
+		<p class="limit-75">
+			The template bot is split into 4 active function and 1 helper function. The template bot choose a spot to play by randomly choosing a row; checks if it can play there; than repones with its chosen row.
+			Lets meet the functions now.
+		</p>
+		<codedoc>
+			<h2>start();</h2>
+			<p>The function <code>start</code> is called every time the code is loaded, which is once every match (1000 games). It doesn't return anything back to the control server. </p>
+			<codeblock>
+			<pre>
+async function start(){
+	console.log("this is the start!");
+
+	return new Respons("OK");
+}</pre><copy>Copy</copy>
+</codeblock>
+		</codedoc>
+		</div>
+		
 
 	</body>
 
