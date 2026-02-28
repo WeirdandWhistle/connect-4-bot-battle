@@ -2,16 +2,17 @@ const rows = 7;
 const columns = 6;
 
 function play(board,row,color){
+    // console.log("play board log",board);
     if(row >= rows){
-        console.log("out of board");
+        // console.log("out of board");
         return false;
     }
     if(row < 0){
-        console.log("out of board");
+        // console.log("out of board");
         return false;
     }
     if(board[0][row] != 0){
-        console.log("top of the row is ocuipided");
+        // console.log("top of the row is ocuipided");
         return false;
     }
     let playColumn = 0;
@@ -37,12 +38,14 @@ const server = Bun.serve({
     routes: {
         "/start" : req => start(req),
         "/move": req => move(req),
-        "/reset": req => reset(req)
+        "/reset": req => reset(req),
+        "/end": req => end(req)
     }
 });
 
 async function move(req){
-    const json = req.json();
+    // console.log("got move requst");
+    const json = await req.json();
     const board = json.board;
     let row;
     while(1){
@@ -51,10 +54,19 @@ async function move(req){
             break;
         }
     }
+    // console.log(JSON.stringify({row: row}));
 
     return new Response(JSON.stringify({row: row}));
 
 }
 async function reset(req){
+    return new Response("OK");
+}
+async function end(req){
+    console.log("shutting down...");
+    setTimeout(() => {
+        process.exit(0); // 0 means "Success/Clean Exit"
+      }, 100);
 
+      return new Response("Server is shutting down...");
 }
