@@ -14,30 +14,208 @@
 		</div>
 		<hr>
 		<div class="small-border"></div>
-		<div class="main-body">
-		<section>
-			<h1>Part 1: Template Bot</h1>
-		</section>
-		<p class="limit-75">
-			The template bot is split into 4 active function and 1 helper function. The template bot choose a spot to play by randomly choosing a row; checks if it can play there; than repones with its chosen row.
-			Lets meet the functions now.
-		</p>
-		<codedoc>
-			<h2>start();</h2>
-			<p>The function <code>start</code> is called every time the code is loaded, which is once every match (1000 games). It doesn't return anything back to the control server. </p>
-			<codeblock>
-			<pre>
-async function start(){
+			<div class="main-body">
+			<section>
+				<h1>Part 1: Template Bot</h1>
+			</section>
+			<p class="limit-75">
+				The template bot is split into 4 active function and 1 helper function. The template bot choose a spot to play by randomly choosing a row; checks if it can play there; than repones with its chosen row.
+				Lets meet the functions now.
+			</p>
+			<codedoc>
+				<h2>start();</h2>
+				<p>The function <code>start</code> is called every time the code is loaded, which is once every match (1000 games).
+					It doesn't return anything back to the control server. Why would you need this? I dont know, Just though some people might use it.
+				</p>
+				<codeblock>
+				<pre id="code-1">
+async function start(req){
 	console.log("this is the start!");
 
 	return new Respons("OK");
-}</pre><copy>Copy</copy>
-</codeblock>
-		</codedoc>
-		</div>
-		
+}</pre><copy onclick="copy('code-1',this)">Copy</copy>
+				</codeblock>
+			</codedoc>
+
+			<div class="small-border"></div>
+
+			<codedoc>
+				<h2>reset();</h2>
+				<p>The function <code>reset</code> is called every time a match ends. I reccomend using this function to reset any match state you might have.
+				</p>
+				<codeblock>
+				<pre id="code-2">
+async function reset(req){
+	//to reset any state you might have.
+
+	return new Respons("OK");
+}</pre><copy onclick="copy('code-2',this)">Copy</copy>
+				</codeblock>
+			</codedoc>
+
+			<div class="small-border"></div>
+
+			<codedoc>
+				<h2>end();</h2>
+				<p>The function <code>reset</code> is called once before the the match is terminated. The main use for this function is to exit the program, I won't reccomend changing this function.
+				</p>
+				<codeblock>
+				<pre id="code-3">
+async function end(req){
+    console.log("shutting down...");
+	//use the timeout to response before shutting down
+    setTimeout(() => {
+        process.exit(0); //0 means success/clean exit
+      }, 100);
+
+      return new Response("Server is shutting down...");
+}</pre><copy onclick="copy('code-3',this)">Copy</copy>
+				</codeblock>
+			</codedoc>
+
+			<div class="small-border"></div>
+			<p>Now for the fun part.</p>
+			<div class="small-border"></div>
+
+			<codedoc>
+				<h2>move(req);</h2>
+				<p>The function <code>move</code> is called every single time your bot is expected to playa a move. This is the best function because it's where all the fun happens.
+					You write all of the logic that makes your bot work in this function. When it's your turn this function will be called. There are two main parts to this function.
+					<br>Part 1: Randomly decide on row to play. Math.random() choose a number between 0 and 1 (0 &#x2264; num < 1) scales by the amout of rows in a board, and then rounds down.
+					<br>Part 2: Chcek if the move you want to play is avalible. Checks if the move is legal than exits the forever loop if it is.
+				</p>
+				<codeblock>
+				<pre id="code-4">
+async function move(req){
+    // console.log("got move request");
+    const json = await req.json();
+    const board = json.board;
+    let row;
+    while(true){
+
+	//---- part 1 ----
+        row = Math.floor(Math.random() * rows);
+
+	//---- part 2 ----
+        if(play(board,row,1)){
+            break;
+        }
+    }
+
+    return new Response(JSON.stringify({row: row}));
+
+}</pre><copy onclick="copy('code-4',this)">Copy</copy>
+				</codeblock>
+			</codedoc>
+
+			<div class="small-border"></div>
+
+
+			<codedoc>
+				<h2>play(board, row, color);</h2>
+				<p>
+					The <code>play</code> function is very simple. it returns a <code style="color: orange;">true</code> or <code style="color: orange;">false</code>
+					if the you can <code>row</code> inputted is a legal move, given a <code>board</code> (2d array) and a <code>color</code> (any number &#x2260; 0).
+				</p>
+				<codeblock>
+				<pre id="code-5">
+function play(board,row,color){
+    // console.log("play board log",board);
+    if(row >= rows){
+        // console.log("out of board");
+        return false;
+    }
+    if(row < 0){
+        // console.log("out of board");
+        return false;
+    }
+    if(board[0][row] != 0){
+        // console.log("top of the row is occupied");
+        return false;
+    }
+    let playColumn = 0;
+    while(true){
+        if(playColumn + 1 === columns){
+            board[playColumn][row] = color; 
+            break;
+        }
+        if(board[playColumn+1][row] != 0){
+            board[playColumn][row] = color;
+            break;
+        }
+        playColumn += 1;
+    }
+
+    return true;
+}</pre><copy onclick="copy('code-5',this)">Copy</copy>
+				</codeblock>
+			</codedoc>
+
+				<div class="big-border"></div>
+
+				<p class="limit-75">Thats it. Thats all you need to know about the template bot. You can also view the entire code at <a href="https://github.com/WeirdandWhistle/connect-4-bot-battle/blob/main/template.js">this GitHub</a>.
+				If you want to dig deeper and understand more about inner workings, API, and specs keep reading.</p>
+				
+				<div class="big-border"></div>
+
+				<section>
+					<h1>Part 2: Specifications</h1>
+				</section>
+				<div class="small-border"></div>
+
+				<p class="limit-75">
+					This section defines the specs of the IO with the refree system.
+				</p>
+
+				<div class="small-border"></div>
+
+				<p class="limit-75">
+					Terms:<br>
+					Refree - refers to the command and control center that keeps board state, scores, analytics, and reports back to the main API running on the host server.<br>
+					Bot/Player - The piece of code uploaded by a user to play connect4. The term <code>bot</code> and <code>player</code> will be used interchangebly<br>
+					Main API -The http server running accepting request, initilzing matches, and controling the database with scores, ratings, wins, losses, ties, and file names.
+				</p>
+				<h2>Where do the Refree and Players run?</h3>
+				<p class="limit-75">
+					The refree and players run inside a docker compose with 3 containers -- 2 players and 1 refree -- each bot is given it's own docker network seprate from eachother.
+					The refree is attached to 3 different networks, 1 for each bot, and a third external network to talk to the Main API.
+				</p>
+				<h2>How do the Refree and Players talk?</h2>
+				<p class="limit-75">
+					The refree and players shall comunicate via the HTTP protocol. Each player shall host a HTTP server with 4 different end points that will return at minimun a <code>200 OK</code> response.
+					The 4 different end points are defined as follows; <code>/start</code> will be defined as being called once when the Bot is first loaded, and expects no content to be returned.
+					<code>/move</code> will be defined as being called anytime the refree needs a move from this player, and expects a json data containing the varible <code>row</code>.
+					<code>row</code> shall be a <code style="color: orange;">integer</code> between <code>0</code> and <code>rows - 1</code> (rows being the maximun number of rows on the board).
+					<code>/reset</code> will be defined as being called anytime the refree clears/resets the board state, and expects no content to be returned.
+					<code>/end</code> will be defined as being called when the refree is about to exit, no content is to be return BUT the player must exit either before or after returning back to the refree.
+					My recomendation is to <code>setTimeout</code> to <code>process.exit(0);</code> on a delay, I chose 100ms.
+				</p>
+				<div class="small-border"></div>
+				<p class="limit-75">
+					WOW! That was alot. Basicly run a HTTP server with 4 endpoints.<br>
+					<code>/start</code> return nothing.<br>
+					<code>/move</code> return a json with <code>row</code> a row you want to play in. example: <code>{ "row" : 3 }</code><br>
+					<code>/reset</code> return nothing.<br>
+					<code>/end</code> exit the process.<br>
+				</p>
+				<div class="big-border"></div>
+				<p class="limit-75">
+					Thats basicly it. Thats all you need to know to make a bot. There will probaly be a place a testing place to see if you bot works at this <a href="/test">LINK</a>
+				</p>
+
+		</div>	
 
 	</body>
+
+	<script>
+		function copy(id,cEle){
+			const copyCode = document.getElementById(id).innerHTML;
+			navigator.clipboard.writeText(copyCode);
+
+			cEle.innerHTML = "&#x2713;";
+			setTimeout(()=>{cEle.innerHTML = "Copy";},2000);
+		}
+	</script>
 
 </html>
 
