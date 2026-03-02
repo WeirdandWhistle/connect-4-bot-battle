@@ -213,6 +213,7 @@ async function runMatch(){
 let testCurrentlyRunning = false;
 
 async function testStart(req){
+	console.log("trying to start smth");
 	if(testCurrentlyRunning){
 		return new Response("TEST CURRENTLY RUNNING",{status:401});
 	}
@@ -232,11 +233,34 @@ async function testStart(req){
 	return new Response("OK");
 }
 async function doTest() {
-	for await (let line of $`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose up --build; docker compose down`.lines()){
-		for(let ws of testWS){
-			ws.send(line);
+	//for await (let line of ($`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose --progress plain up --build`.nothrow()).lines()){
+	//	console.log(line);
+	//	for(let ws of testWS){
+	//		ws.send(line);
+	//	}
+	//}
+	
+	const shell = $`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose --progress plain up --build`;
+
+	const reader = shell.stdout.getReader();
+	const decoder = new TextDecoder();
+
+	while(1){
+		const {done, val} = await reader.read();
+		if(done) {break;}
+
+		const chunk = decoder.decode(val);
+
+		for(const ws of testWS){
+			ws.send(checnk);
 		}
 	}
+
+	//for await (let line of shell.lines()){
+	//	console.log(line);
+	//}
+	
+	await $`cd test-config; docker compose down`;
 
 	testCurrentlyRunning = false;
 

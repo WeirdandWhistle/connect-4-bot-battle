@@ -16,7 +16,7 @@ async function uploadAndTest(){
     socket.onmessage = (event) => {
         /* Message received */
         console.log("message recived!");
-        logs.insertAdjacentHTML("beforeend",event.data);
+        logs.insertAdjacentHTML("beforeend",event.data+"<br>");
     };
     socket.onerror = (event) => {
         /* Error occurred */

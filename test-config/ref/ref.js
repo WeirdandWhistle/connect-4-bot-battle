@@ -325,7 +325,7 @@ async function init(){
         }
 
         board = Array.from({ length: columns }, () => new Array(rows).fill(0));
-        console.log("resetting games!!!");
+        //console.log("resetting games!!!");
         try{
         const resetp1 = fetch("http://p1:3001/reset",{ signal: AbortSignal.timeout(500),});
         const resetp2 = fetch("http://p2:3001/reset",{ signal: AbortSignal.timeout(500),});
