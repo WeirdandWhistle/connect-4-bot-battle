@@ -1,1 +1,39 @@
-SOON!
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test suite | connect 4</title>
+        <style>
+            .bin{
+                width: 45%;
+                border: 1px solid grey;
+                padding: 0.5rem;
+                min-height: 40rem;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>Connect4.whynotjava.net test suite.</h1> sorry no css. hacker news ts.
+        <hr>
+        <main style="display: flex; flex-direction: row; gap: 2rem; justify-content: center;">
+        <div class="bin">
+            upload here
+            <hr>
+            <input type="file" id="botFile">
+            <br>
+            <button onclick="uploadAndTest()"> upload and test</button>
+            <div>
+                status: <span id="status">nothing</span>
+            </div>
+        </div>
+        <div class="bin" style="overflow: scroll;">
+            logs | you are P1
+            <hr>
+            <div id="logs">
+                > start of logs<br>
+            </div>
+        </div>
+        </main>
+    </body>
+    <script src="test-logs.js"></script>
+</html>

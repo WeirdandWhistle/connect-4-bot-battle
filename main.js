@@ -13,6 +13,7 @@ await db`CREATE TABLE IF NOT EXISTS bot_data (name TEXT,  rank INT, rating INT, 
 
 let matchQue = [];
 const baseBot = "random.js";
+const webSocketUpgrade = "/api/test/ws";
 
 if((await db`SELECT wins FROM bot_data WHERE name='baseBot' LIMIT 1;`).count === 0){
 	await db`INSERT INTO bot_data (name, rank, rating, wins, losses, ties, total_turns, games_played, turn_time, file_name)
@@ -94,6 +95,8 @@ async function play(req){
 	return new Response("OK");
 }
 
+let testWS = new Set();
+
 const server = Bun.serve({
     port: 5000,
     idleTimeout: 10,
@@ -101,9 +104,36 @@ const server = Bun.serve({
         "/api/record": req => record(req),
         "/api/upload": req => upload(req),
         "/api/stats": req => stats(req),
-	"/api/play": req => play(req),
-	"/api": new Response("YOU HAEV REACHED THE API")
-    }
+		"/api/play": req => play(req),
+		"/api/test/start": req => testStart(req),
+		"/api": new Response("YOU HAEV REACHED THE API")
+    },
+
+	fetch(req, server){
+		const url = new URL(req.url);
+
+		if(url.pathname === webSocketUpgrade){
+			const upgraded = server.upgrade(req);
+			if(upgraded){
+				return;
+			}
+			return new Response("WEBSOCKET UPGRADE FALIED",{status: 400});
+		}
+		return new Response("API FETCHED!");
+	},
+	websocket: {
+		open(ws){
+			console.log("client connect to websocket!");
+			testWS.add(ws);
+		},
+		message(ws, message){
+			ws.send(`NO WEBSOCKET ACCEPTS MESSAGES & ECHO: ${message}`);
+		},
+		close(ws, code, reason) {
+      		console.log(`Client disconnected: ${code} - ${reason}`);
+			testWS.delete(ws);
+    	},
+	},
 });
 
 console.log("main.js now running on",server.url);
@@ -179,14 +209,40 @@ async function runMatch(){
 	
 	setTimeout(async()=>runMatch(), 10 * 1000);
 }
+
+let testCurrentlyRunning = false;
+
+async function testStart(req){
+	if(testCurrentlyRunning){
+		return new Response("TEST CURRENTLY RUNNING",{status:401});
+	}
+	testCurrentlyRunning = true;
+
+	const formData = await req.formData();
+    	const file = formData.get("file");
+
+    	if(file.size > 1E7){
+        	return new Response("FILE TOO BIG!");
+    	}
+	
+	await Bun.write(`test-config/p1/src/app.js`,file);
+
+	doTest();
+
+	return new Response("OK");
+}
+async function doTest() {
+	for await (let line of $`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose up --build; docker compose down`.lines()){
+		for(let ws of testWS){
+			ws.send(line);
+		}
+	}
+
+	testCurrentlyRunning = false;
+
+	for(let ws of testWS){
+		ws.send("TEST READY");
+	}
+}
+
 runMatch();
-
-//console.log(await $`ls /mnt`.text());
-
-//let out = await $`cd match-config; docker compose up --build; docker compose down`.text();
-//console.log(out);
-
-//console.log("finshed running match!");
-//console.log("shutting down...");
-
-//setTimeout(()=>{process.exit(0);},1000);
