@@ -173,7 +173,7 @@ function canPlay(){
 //         "/move": req=> move(req)
 //     }
 // });
-const totalGames = 1000;
+const totalGames = 500;
 let playedGames = 0;
 
 let p1Wins = 0;
@@ -194,7 +194,7 @@ async function init(){
     await startp2;
     let totalTurns = 0;
     let peakGameTimeNano = 0;
-    let minGameTimeNano = 1000;
+    let minGameTimeNano = 1000000;
 
 	let runningTime = nanoseconds();
 	let ranTooLong = false;
@@ -219,8 +219,8 @@ async function init(){
 		}
 		
             if(!canPlay()){
-                console.log("cant play! foreced tie!");
-                printBoard();
+                //console.log("cant play! foreced tie!");
+                //printBoard();
                 ties++;
                 break;
             }
@@ -358,6 +358,8 @@ async function init(){
         timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
         peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec, p1AbortedGames: p1AbortedGames, p2AbortedGames,
     	ranTooLong: ranTooLong, abortedMatch: abortedMatch};
+
+	console.log(returnJson);
 }
 
 init();

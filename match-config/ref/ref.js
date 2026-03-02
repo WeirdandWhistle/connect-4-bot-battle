@@ -219,8 +219,8 @@ async function init(){
 		}
 		
             if(!canPlay()){
-                console.log("cant play! foreced tie!");
-                printBoard();
+                //console.log("cant play! foreced tie!");
+                //printBoard();
                 ties++;
                 break;
             }
@@ -358,6 +358,8 @@ async function init(){
         timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
         peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec, p1AbortedGames: p1AbortedGames, p2AbortedGames,
     	ranTooLong: ranTooLong, abortedMatch: abortedMatch};
+
+	console.log(JSON.stringify(returnJson));
 
     fetch("http://host.docker.internal:5000/api/record",{
         method: "POST",

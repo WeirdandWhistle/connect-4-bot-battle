@@ -240,27 +240,50 @@ async function doTest() {
 	//	}
 	//}
 	
-	const shell = $`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose --progress plain up --build`;
+	//const shell = await $`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose --progress plain up --build`;
+	
+	//await new Promise(res => setTimeout(res,10 * 1000));
 
-	const reader = shell.stdout.getReader();
-	const decoder = new TextDecoder();
+	const proc = Bun.spawn(["docker","compose","up","--build"],{
+		cwd: "./test-config",
+		env: {HOME: "/connect4"},
 
-	while(1){
-		const {done, val} = await reader.read();
-		if(done) {break;}
+	});
+	//const text = await proc.stdout.text();
+	//console.log(text);
+	
+	//let output = await proc.stdout.text();
+	console.log(proc.stdout);
+	//const readStream = proc.stdout.getReader();
 
-		const chunk = decoder.decode(val);
-
+	const textStream = proc.stdout.pipeThrough(new TextDecoderStream());
+	let sendingData = false;
+	for await (const chunk of textStream){
+		//`console.log("new checnk", chunk);
+		//console.log(chunk);
+		if(sendingData){
 		for(const ws of testWS){
-			ws.send(checnk);
+			ws.send(chunk);
 		}
+		} else{
+			if(chunk.includes("start!")){
+				sendingData = true;
+			}
+		}
+
 	}
+
+	//for await(const line of output){
+	//	for(const ws of testWS){
+	//		ws.send(line);
+	//	}
+	//}
 
 	//for await (let line of shell.lines()){
 	//	console.log(line);
 	//}
 	
-	await $`cd test-config; docker compose down`;
+	//await $`cd test-config; docker compose down`;
 
 	testCurrentlyRunning = false;
 
