@@ -182,7 +182,7 @@ function play(board,row,color){
 				</p>
 				<h2>How do the Refree and Players talk?</h2>
 				<p class="limit-75">
-					The refree and players shall comunicate via the HTTP protocol. Each player shall host a HTTP server with 4 different end points that will return at minimun a <code>200 OK</code> response.
+					The refree and players shall comunicate via the HTTP protocol. Each player shall host a HTTP server on port 3001 with 4 different end points that will return at minimun a <code>200 OK</code> response.
 					The 4 different end points are defined as follows; <code>/start</code> will be defined as being called once when the Bot is first loaded, and expects no content to be returned.
 					<code>/move</code> will be defined as being called anytime the refree needs a move from this player, and expects a json data containing the varible <code>row</code>.
 					<code>row</code> shall be a <code style="color: orange;">integer</code> between <code>0</code> and <code>rows - 1</code> (rows being the maximun number of rows on the board).
