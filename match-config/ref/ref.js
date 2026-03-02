@@ -5,6 +5,7 @@ const rows = 7;
 const columns = 6;
 const numColors = 2;
 let board = Array.from({ length: columns }, () => new Array(rows).fill(0));
+const maxAbortedGames = 10;
 
 
 
@@ -186,8 +187,8 @@ async function init(){
     const startTimeNano = nanoseconds();
 
     console.log("init...");
-    const startp1 = fetch("http://p1:3001/start");
-    const startp2 = fetch("http://p2:3001/start");
+    const startp1 = fetch("http://p1:3001/start",{ signal: AbortSignal.timeout(500),});
+    const startp2 = fetch("http://p2:3001/start",{ signal: AbortSignal.timeout(500),});
 
     await startp1;
     await startp2;
@@ -204,14 +205,15 @@ async function init(){
 	    let firstMove = "p1";
 	    let secondMove = "p2";
 	    let p1First = true;
+        let abortedMatch = false;
 
     while(playedGames < totalGames){
         let aborted = false;
         // console.log("starting new game");
         let gameTimeNano = nanoseconds();
-	    //console.log("who goes first?",firstMove);
+	    // console.log("who goes first?",firstMove);
 	    while(1){
-
+            
 		if(nanoseconds() - runningTime > 1E9 * 30){
 			ranTooLong = true;
 		}
@@ -225,16 +227,13 @@ async function init(){
 
             // printBoard();
             // console.log("ref board -> p1",JSON.stringify({board : board}));
+            try {
             const resp1 = await fetch(`http://${firstMove}:3001/move`,{
                 method: "POST",
-                body: JSON.stringify({board : board})
+                body: JSON.stringify({board : board}),
+                signal: AbortSignal.timeout(500),
             });
 
-            
-
-            // console.log("reading p1 move");
-            // const textp1 = await resp1.text();
-            // console.log("p1 text!",textp1);
             const movep1 = await resp1.json();
             if(!play(movep1.row, 1)){
                 console.log("bad move!");
@@ -243,31 +242,66 @@ async function init(){
                 break;
             }
             totalTurns++;
-
-            if(isWin(1)){
-                // console.log("1 won!");
-                p1Wins++;
-                p2Losses++;
-                break;
+            } catch(err){
+                console.log("aborted due to turn time overrun!");
+                aborted = true;
+		        p1First ? p1AbortedGames++ : p2AbortedGames++;
+		        break;
             }
+            
 
+            // console.log("reading p1 move");
+            // const textp1 = await resp1.text();
+            // console.log("p1 text!",textp1);
+            
+
+            if(!p1First){
+                if(isWin(2)){
+                    p2Wins++;
+                    p1Losses++;
+                    break;
+                }
+            } else {
+                if(isWin(1)){
+                    p1Wins++;
+                    p2Losses++;
+                    break;
+                }
+            }
+            try {
             const resp2 = await fetch(`http://${secondMove}:3001/move`,{
                 method: "POST",
-                body: JSON.stringify({board: board})
+                body: JSON.stringify({board: board}),
+                signal: AbortSignal.timeout(500),
             });
-            // console.log("readig p2 move");
-            const movep2 = await resp2.json();
+
+             const movep2 = await resp2.json();
             if(!play(movep2.row,2)){
                 console.log("bad move!");
                 aborted = true;
 		    p1First ? p1AbortedGames++ : p2AbortedGames++;
 		    break;
             }
+        } catch (err){
+            aborted = true;
+		    p1First ? p1AbortedGames++ : p2AbortedGames++;
+		    break;
+        }
+            // console.log("readig p2 move");
+           
             totalTurns++;
-            if(isWin(2)){
-                p2Wins++;
-                p1Losses++;
-                break;
+            if(!p1First){
+                if(isWin(2)){
+                    p2Wins++;
+                    p1Losses++;
+                    break;
+                }
+            } else {
+                if(isWin(1)){
+                    p1Wins++;
+                    p2Losses++;
+                    break;
+                }
             }
 
         }
@@ -276,28 +310,40 @@ async function init(){
         minGameTimeNano = Math.min(minGameTimeNano, nanoseconds() - gameTimeNano);
 
         if(aborted){
-
+            console.log("game aborted!");
         } else{
             playedGames++;
 		const tmpMove = firstMove;
 		firstMove = secondMove;
 		secondMove = tmpMove;
         }
-        board = Array.from({ length: columns }, () => new Array(rows).fill(0));
 
-        const resetp1 = fetch("http://p1:3001/reset");
-        const resetp2 = fetch("http://p2:3001/reset");
+        if(p1AbortedGames + p2AbortedGames > maxAbortedGames){
+            console.log("too many games aborted!");
+            abortedMatch = true;
+            break;
+        }
+
+        board = Array.from({ length: columns }, () => new Array(rows).fill(0));
+        console.log("resetting games!!!");
+        try{
+        const resetp1 = fetch("http://p1:3001/reset",{ signal: AbortSignal.timeout(500),});
+        const resetp2 = fetch("http://p2:3001/reset",{ signal: AbortSignal.timeout(500),});
 
         await resetp1;
         await resetp2;
+        } catch (err){
+            console.log("error resting games",err);
+            break;
+        }
     }
 
     console.log(`p1 stats wins ${p1Wins}, losses ${p1Losses}`);
     console.log(`p2 stats wins ${p2Wins}, losses ${p2Losses}`);
     console.log(`ties ${ties} played games ${playedGames}`);
 
-    fetch("http://p1:3001/end");
-    fetch("http://p2:3001/end");
+    fetch("http://p1:3001/end",{ signal: AbortSignal.timeout(500),});
+    fetch("http://p2:3001/end",{ signal: AbortSignal.timeout(500),});
 
     const endTimeNano = nanoseconds();
     const timeRanNano = endTimeNano - startTimeNano;
@@ -311,7 +357,7 @@ async function init(){
     const returnJson = {p1Wins: p1Wins, p1Losses: p1Losses, p2Wins: p2Wins, p2Losses: p2Losses, ties: ties,
         timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
         peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec, p1AbortedGames: p1AbortedGames, p2AbortedGames,
-    	ranTooLong: ranTooLong};
+    	ranTooLong: ranTooLong, abortedMatch: abortedMatch};
 
     fetch("http://host.docker.internal:5000/api/record",{
         method: "POST",
