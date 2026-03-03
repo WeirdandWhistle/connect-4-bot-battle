@@ -15,14 +15,23 @@ async function uploadAndTest(){
     };
     socket.onmessage = (event) => {
         /* Message received */
-        console.log("message recived!");
-        logs.insertAdjacentHTML("beforeend",event.data+"<br>");
+	    if(event.data === "TEST READY"){
+		status.innerHTML = "DONE";	
+	    } else {
+		    if(event.data.includes("init...")){
+			status.innerHTML = "CONNECTED";
+		    }
+        	console.log("message recived!");
+        	logs.insertAdjacentHTML("beforeend",event.data+"<br>");
+	    }
     };
     socket.onerror = (event) => {
         /* Error occurred */
+	    status.innerHTML = "ERROR ON WEBSOCKET";
     };
     socket.onclose = (event) => {
         /* Connection closed */
+	    status.innerHTML = "HTML CLOSED";
     };
 
     const formData = new FormData();
