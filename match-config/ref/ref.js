@@ -202,6 +202,9 @@ async function init(){
 	let p1AbortedGames = 0;
 	let p2AbortedGames = 0;
 
+        let p1RunningMoveTime = 0;
+        let p2RunningMoveTime = 0;
+
 	    let firstMove = "p1";
 	    let secondMove = "p2";
 	    let p1First = true;
@@ -227,6 +230,7 @@ async function init(){
 
             // printBoard();
             // console.log("ref board -> p1",JSON.stringify({board : board}));
+            const firstMoveStartNano = nanoseconds();
             try {
             const resp1 = await fetch(`http://${firstMove}:3001/move`,{
                 method: "POST",
@@ -248,6 +252,11 @@ async function init(){
 		        p1First ? p1AbortedGames++ : p2AbortedGames++;
 		        break;
             }
+            if(p1First){
+                p1RunningMoveTime += nanoseconds() - firstMoveStartNano;
+            } else {
+                p2RunningMoveTime += nanoseconds() - firstMoveStartNano;
+            }
             
 
             // console.log("reading p1 move");
@@ -268,6 +277,7 @@ async function init(){
                     break;
                 }
             }
+            const secondMoveStartNano = nanoseconds();
             try {
             const resp2 = await fetch(`http://${secondMove}:3001/move`,{
                 method: "POST",
@@ -287,6 +297,12 @@ async function init(){
 		    p1First ? p1AbortedGames++ : p2AbortedGames++;
 		    break;
         }
+
+        if(!p1First){
+                p1RunningMoveTime += nanoseconds() - secondMoveStartNano;
+            } else {
+                p2RunningMoveTime += nanoseconds() - secondMoveStartNano;
+            }
             // console.log("readig p2 move");
            
             totalTurns++;
@@ -354,10 +370,15 @@ async function init(){
     const peakGameTimeSec = peakGameTimeNano / 1E9;
     const minGameTimeSec = minGameTimeNano / 1E9;
 
+    const p1TotalMoveTimeSeconds = p1RunningMoveTime / 1E9;
+    const p2TotalMoveTimeSeconds = p2RunningMoveTime / 1E9;
+
     const returnJson = {p1Wins: p1Wins, p1Losses: p1Losses, p2Wins: p2Wins, p2Losses: p2Losses, ties: ties,
         timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
         peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec, p1AbortedGames: p1AbortedGames, p2AbortedGames,
-    	ranTooLong: ranTooLong, abortedMatch: abortedMatch};
+    	ranTooLong: ranTooLong, abortedMatch: abortedMatch,
+        p1TotalMoveTimeSeconds: p1TotalMoveTimeSeconds, p2TotalMoveTimeSeconds: p2TotalMoveTimeSeconds,
+    };
 
 	console.log(JSON.stringify(returnJson));
 
