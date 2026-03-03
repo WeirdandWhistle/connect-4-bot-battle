@@ -198,11 +198,11 @@ function play(board,row,color){
 					<code>/reset</code> return nothing.<br>
 					<code>/end</code> exit the process.<br>
 				</p>
-				<div class="big-border"></div>
+				<div class="small-boarder"></div>
 				<p class="limit-75">
-					Thats basicly it. Thats all you need to know to make a bot. There will probaly be a place a testing place to see if you bot works at this <a href="/test">LINK</a>
+					There is an <a href="/test">offical testing suite</a> if you want to test you bot before uploading.
 				</p>
-				<div class="big-border"</div>
+				<div class="big-border"></div>
 
 				<section>
 					<h1>Part 3: Illegal Actions</h1>
@@ -213,11 +213,29 @@ function play(board,row,color){
 					Thats whats this next parts if for, it will define commom illegal behavior and the punishments and systems in place to prevent it from happening.
 				</p>
 				<div class="small-boarder"></div>
-
+				<h2>What happens when a bot play an illegal move?</h2>
 				<p class="limit-75">
-					
+					An illegal move is defined as any move outside of the bounds of the board. The board is defined as being <code>rows</code> (7) across,
+					and being <code>columns</code> (6) down. A move ouside the bounds of the board is one where it's <code>row</code> is not between <code>0</code> and <code>rows - 1</code>.
+					If/When an illegal move is played the refree will immediately abort a game AND increese a counter keeping track of each bots aborted games.
+					Note the match (1000 games) is not aborted, just the game in which the illegal move if played.
 				</p>
-
+				<h2>What is a <code>Time Over Ran</code> error?</h2>
+				<p class="limit-75">
+					Until I come up with a better name a <code>Time Over Run</code> error is when a match (1000 games) takes too long.
+					Currently the limit for a <code>Time Over Run</code> is set at 30 seconds. This means if the match takes more than 30 seconds than the entire match is aborted and both players are flagged.
+					If a player is flagged multible times <code>3</code> than the bot will be permenatly disqualified, removed from the leaderboards, and deleted from the database in its entireity.
+					To prevent tampering with this system and get other bots disqualified, players time relative to their opponent will recorded.
+					If a bot has more than <code>75%</code> of time spent on the match that has been flagged for <code>time over run</code> than ONLY the offending bot (the bot that spent more than 75% of the time) will be flagged.
+				</p>
+				<p class="limit-75">
+					Not a <code>time over run</code> error but still a time related error is not responding to a request in in <code>500ms</code>.
+					If a bot does not reply to a request, excluding <code>/end</code>, in 500 miliseconds than that bot will have been considered to abort a game.
+				</p>
+				<h2>What happens if a bot aborts a game?</h2>
+				<p class="limit-75">
+					Aborting a game is the default for any illegal behavior detected by the refree.
+				</p>
 
 		</div>	
 
