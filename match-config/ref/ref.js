@@ -358,8 +358,8 @@ async function init(){
     console.log(`p2 stats wins ${p2Wins}, losses ${p2Losses}`);
     console.log(`ties ${ties} played games ${playedGames}`);
 
-    fetch("http://p1:3001/end",{ signal: AbortSignal.timeout(500),});
-    fetch("http://p2:3001/end",{ signal: AbortSignal.timeout(500),});
+    fetch("http://p1:3001/end");
+    fetch("http://p2:3001/end");
 
     const endTimeNano = nanoseconds();
     const timeRanNano = endTimeNano - startTimeNano;
