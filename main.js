@@ -7,7 +7,7 @@ const db = new SQL({
 
 await $`whoami`;
 await $`mkdir -p upload`;
-await db`CREATE TABLE IF NOT EXISTS bot_data (name TEXT,  rank INT, rating INT, wins INT, losses INT, ties INT, total_turns INT, games_played INT, turn_time FLOAT, file_name TEXT);`;
+await db`CREATE TABLE IF NOT EXISTS bot_data (name TEXT,  rank INT, rating INT, wins INT, losses INT, ties INT, total_turns INT, games_played INT, turn_time FLOAT, file_name TEXT, flagged INT DEFAULT 0);`;
 
 //await db`INSERT INTO bot_data(name, rank, rating, wins, losses, ties, total_turns, games_played, turn_time, file_name) VALUES ("malcon", 2, 2254, 12, 2, 1, 50, 15, 3, "falcon.js");`;
 
@@ -75,7 +75,7 @@ async function upload(req){
 async function stats(req){
     const data = await db`SELECT * FROM bot_data LIMIT 100;`;
 
-    console.log("data",data);
+    //console.log("data",data);
     return new Response(JSON.stringify(data),{
         headers: {"Access-Control-Allow-Origin":"*"}
     });
@@ -165,6 +165,9 @@ async function runMatch(){
 	const fileName = (await db`SELECT file_name FROM bot_data WHERE name=${name} LIMIT 1;`)[0].file_name;
 	console.log("file name",fileName);
 
+	const p1Name = name;
+	const p2Name = baseBot;
+
 	// base case
 	console.log("copying files!");
 	await $`cp upload/${fileName} match-config/p1/src/app.js`;
@@ -172,12 +175,46 @@ async function runMatch(){
 	console.log("starting docker!");
 	await $`export HOME=/connect4; mkdir -p HOME; cd match-config; docker compose up --build; docker compose down`;
 
-	while(!jsonDataExists){}
+	while(!jsonDataExists){
+		await new Promise(r => setTimeout(r,10));
+	}
 
 	const json = jsonDataFromCurrentMatch;
 	jsonDataExists = false;
 	jsonDataFromCurrentMatch = null;
 	console.log("update database!");
+
+	let updateDB = true;
+	const flaggedTimeOverRun = 70;
+	const flaggedAbortedGamesThreshold = 10;
+
+	if(json.ranTooLong){
+		updateDB = false;
+		
+		const p1TimeRanPercent = json.p1TotalMoveTimeSeconds / json.timeRanSec * 100;
+		const p2TimeRanPercent = json.p2TotalMoveTimeSeconds / json.timeRanSec * 100;
+
+		if(p1TimeRanPercent > 75){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+		} else if(p2TimeRanPercent > 75){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p2Name};`;
+		} else{
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p2Name};`;
+		}
+	}
+	if(json.abortedMatch){
+		updateDB = false;
+		if(json.p1AbortedGames >= flaggedAbortedGamesThreshold){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+		}
+		if(json.p2AbortedGames >= flaggedAbortedGamesThreshold){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+		}
+		console.log("match aborted");
+	}
+
+	if(updateDB){
 
 	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${name};`;
 	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name='baseBot';`;
@@ -206,8 +243,14 @@ async function runMatch(){
 	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name='baseBot';`;
 
 	//console.log(await db`SELECT * FROM bot_data WHERE name=${name} LIMIT 1;`);
-	
-	setTimeout(async()=>runMatch(), 10 * 1000);
+	await reorgDB();	
+	setTimeout(async()=>runMatch(), 1 * 1000);
+	}
+}
+
+async function reorgDB(){
+	const allNames = await db`SELECT name FROM bot_data`.values();
+	console.log(allNames);
 }
 
 let testCurrentlyRunning = false;
@@ -233,28 +276,12 @@ async function testStart(req){
 	return new Response("OK");
 }
 async function doTest() {
-	//for await (let line of ($`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose --progress plain up --build`.nothrow()).lines()){
-	//	console.log(line);
-	//	for(let ws of testWS){
-	//		ws.send(line);
-	//	}
-	//}
-	
-	//const shell = await $`export HOME=/connect4; mkdir -p HOME; cd test-config; docker compose --progress plain up --build`;
-	
-	//await new Promise(res => setTimeout(res,10 * 1000));
-
 	const proc = Bun.spawn(["docker","compose","up","--build"],{
 		cwd: "./test-config",
 		env: {HOME: "/connect4"},
 
 	});
-	//const text = await proc.stdout.text();
-	//console.log(text);
-	
-	//let output = await proc.stdout.text();
 	console.log(proc.stdout);
-	//const readStream = proc.stdout.getReader();
 
 	const textStream = proc.stdout.pipeThrough(new TextDecoderStream());
 	let sendingData = false;
@@ -272,18 +299,6 @@ async function doTest() {
 		}
 
 	}
-
-	//for await(const line of output){
-	//	for(const ws of testWS){
-	//		ws.send(line);
-	//	}
-	//}
-
-	//for await (let line of shell.lines()){
-	//	console.log(line);
-	//}
-	
-	//await $`cd test-config; docker compose down`;
 
 	testCurrentlyRunning = false;
 
