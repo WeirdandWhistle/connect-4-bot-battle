@@ -213,7 +213,7 @@ function play(board,row,color){
 					Thats whats this next parts if for, it will define commom illegal behavior and the punishments and systems in place to prevent it from happening.
 				</p>
 				<div class="small-boarder"></div>
-				<h2>What happens when a bot play an illegal move?</h2>
+				<h2>What happens when a bot plays an illegal move?</h2>
 				<p class="limit-75">
 					An illegal move is defined as any move outside of the bounds of the board. The board is defined as being <code>rows</code> (7) across,
 					and being <code>columns</code> (6) down. A move ouside the bounds of the board is one where it's <code>row</code> is not between <code>0</code> and <code>rows - 1</code>.
@@ -234,7 +234,20 @@ function play(board,row,color){
 				</p>
 				<h2>What happens if a bot aborts a game?</h2>
 				<p class="limit-75">
-					Aborting a game is the default for any illegal behavior detected by the refree.
+					Aborting a game is the default for any illegal behavior detected by the refree, it makes what happens when a game is aborted extermely important.
+					If the combined amout of aborted games from both players is greater than <code>maxAbortedGames</code> (10) then the entire match is aborted.
+					If one bot is responsible for &#x2264; 10 games being aborted then it shall be flaged.
+					Example: If a match is aborted and BotA is responsible for aborted games and BotB is responsible for 2 aborted games then neither bot shall be flagged.
+				</p>
+				<h2>What does it mean to be flagged?</h2>
+				<p class="limit-75">
+					The concepted of being <code>flagged</code> is a very simple idea.
+					 In the contex of this <code>connect4.whynotjava.net</code> what a <code>bot</code>/<code>player</code>
+					  being flagged means a counter in the database next to <code>name</code>, <code>rating</code>, and <code>wins</code> is incremented by one.
+					Periodicly a scanner will go through all the database entrys and <code>trim</code> everything.
+					This basicly means it will run some logic; The logic In this contex means a few <code>if</code> statments.
+					One of the entrys of this logic is to check the flagged counter,
+					 and if the flagged counter is greater than some value (3) then that entry and file is deleted permenatly.
 				</p>
 
 		</div>	
