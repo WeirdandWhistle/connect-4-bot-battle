@@ -14,6 +14,7 @@ await db`CREATE TABLE IF NOT EXISTS bot_data (name TEXT,  rank INT, rating INT, 
 let matchQue = [];
 const baseBot = "random.js";
 const webSocketUpgrade = "/api/test/ws";
+const SQLIntLimit = 2147483646;//one less then 32 bit int limit
 
 if((await db`SELECT wins FROM bot_data WHERE name='baseBot' LIMIT 1;`).count === 0){
 	await db`INSERT INTO bot_data (name, rank, rating, wins, losses, ties, total_turns, games_played, turn_time, file_name)
@@ -62,7 +63,7 @@ async function upload(req){
 	const fileName = `${name}.js`;
 
 	await db`INSERT INTO bot_data (name, rank, rating, wins, losses, ties, total_turns, games_played, turn_time, file_name)
-	VALUES (${name}, -1, 1200, 0, 0, 0, 0, 0, 0, ${fileName});`;
+	VALUES (${name}, ${SQLIntLimit}, 1200, 0, 0, 0, 0, 0, 0, ${fileName});`;
 
 	matchQue.push(`${name}`);
 	console.log("added",name,"to match que!");
