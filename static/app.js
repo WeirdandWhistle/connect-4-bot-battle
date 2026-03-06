@@ -41,6 +41,8 @@ function uploadBot(){
     const res = await fetch("/api/stats");
     const jsonData = await res.json();
 
+	jsonData.sort((a,b)=>{return a.rank-b.rank;});
+
     for(const json of jsonData){
 
     const winRate = Math.round(json.wins/json.games_played * 100 * 10)  / 10;

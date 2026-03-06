@@ -136,7 +136,7 @@ const server = Bun.serve({
 	},
 });
 
-console.log("main.js now running on",server.url);
+console.log("main.js now running");
 
 function expectedScore(RA, RB){
 	return 1/(1 + Math.pow(10, (RB - RA)/400));
@@ -250,7 +250,21 @@ async function runMatch(){
 
 async function reorgDB(){
 	const allNames = await db`SELECT name FROM bot_data`.values();
-	console.log(allNames);
+	console.log("allnames",allNames);
+
+	let rankings = [];
+
+	for(const name of allNames){
+		const rank = await db`SELECT rating FROM bot_data WHERE name=${name[0]} LIMIT 1;`.values();
+		rankings.push([ rank[0][0], name[0] ]);
+	}
+	rankings.sort((a,b)=>{return a[0] - b[0]});
+
+	rankings.reverse();
+	for(let i=0; i<rankings.length;i++){
+		const rank = i+1;
+		await db`UPDATE bot_data SET rank=${rank} WHERE name=${rankings[i][1]};`;
+	}
 }
 
 let testCurrentlyRunning = false;
