@@ -332,6 +332,12 @@ async function init(){
 		const tmpMove = firstMove;
 		firstMove = secondMove;
 		secondMove = tmpMove;
+
+        if(p1First){
+            p1First = false;
+        } else{
+            p1First = true;
+        }
         }
 
         if(p1AbortedGames + p2AbortedGames > maxAbortedGames){
