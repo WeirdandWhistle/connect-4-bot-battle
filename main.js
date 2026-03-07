@@ -18,7 +18,7 @@ const SQLIntLimit = 2147483646;//one less then 32 bit int limit
 
 if((await db`SELECT wins FROM bot_data WHERE name='baseBot' LIMIT 1;`).count === 0){
 	await db`INSERT INTO bot_data (name, rank, rating, wins, losses, ties, total_turns, games_played, turn_time, file_name)
-	VALUES ('baseBot', -1, 1200, 0, 0, 0, 0, 0, 0, ${baseBot});`;
+	VALUES ('baseBot', ${SQLIntLimit}, 1200, 0, 0, 0, 0, 0, 0, ${baseBot});`;
 
 }
 
@@ -143,6 +143,87 @@ function expectedScore(RA, RB){
 	return 1/(1 + Math.pow(10, (RB - RA)/400));
 }
 
+async function playMatch(p1Path,p2Path){
+	await $`cp ${p1Path} match-config/p1/src/app.js`;
+	await $`cp ${p2Path} match-config/p2/src/app.js`;
+	
+	const proc = Bun.spawn(["docker","compose","up","--build","--remove-orphans","--quiet-build","--abort-on-container-failure"],{
+		cwd: "./macth-config",
+		env: {HOME: "/connect4"},
+	});
+
+
+	while(!jsonDataExists){
+		await new Promise(r => setTimeout(r,10));
+	}
+
+	const json = jsonDataFromCurrentMatch;
+	jsonDataExists = false;
+	jsonDataFromCurrentMatch = null;
+
+	return json;
+}
+async function afterMatchLogic(json,p1Name,p2Name){
+	let updateDB = true;
+	const flaggedTimeOverRun = 75;
+	const flaggedAbortedGamesThreshold = 10;
+
+	if(json.ranTooLong){
+		updateDB = false;
+		
+		const p1TimeRanPercent = json.p1TotalMoveTimeSeconds / json.timeRanSec * 100;
+		const p2TimeRanPercent = json.p2TotalMoveTimeSeconds / json.timeRanSec * 100;
+
+		if(p1TimeRanPercent > flaggedTimeOverRun){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+		} else if(p2TimeRanPercent > flaggedTimeOverRun){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p2Name};`;
+		} else{
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p2Name};`;
+		}
+	}
+	if(json.abortedMatch){
+		updateDB = false;
+		if(json.p1AbortedGames >= flaggedAbortedGamesThreshold){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+		}
+		if(json.p2AbortedGames >= flaggedAbortedGamesThreshold){
+			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
+		}
+		console.log("match aborted");
+	}
+
+	if(updateDB){
+
+	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p1Name};`;
+	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p2Name};`;
+
+	// console.log("update ratings!");
+
+	//update ratings
+	const p1Rating = (await db`SELECT rating FROM bot_data WHERE name=${p1Name} LIMIT 1;`)[0].rating;
+	const p2Rating = (await db`SELECT rating FROM bot_data WHERE name=${p2Name} LIMIT 1;`)[0].rating;
+
+	const p1ExpectedScore = expectedScore(p1Rating, p2Rating) * 10;
+	const p2ExpectedScore = expectedScore(p2Rating, p1Rating) * 10;
+
+	const p1ActualScore = (json.p1Wins + (json.ties / 2)) / 100;
+	const p2ActualScore = (json.p2Wins + (json.ties / 2)) / 100;
+
+	const k = 32;
+
+	const p1UpdatedRating = Math.round(p1Rating + (k * (p1ActualScore - p1ExpectedScore)));
+	const p2UpdatedRating = Math.round(p2Rating + (k * (p2ActualScore - p2ExpectedScore)));
+
+	// console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
+	// console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
+
+	await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${p1Name};`;
+	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name='${p2Name};`;
+
+	return {p1Rating: p1UpdatedRating, p2Rating: p2UpdatedRating};
+}
 async function runMatch(){
 	//console.log("Checking match que...");
 	if(matchQue.length === 0){
@@ -166,84 +247,20 @@ async function runMatch(){
 	const fileName = (await db`SELECT file_name FROM bot_data WHERE name=${name} LIMIT 1;`)[0].file_name;
 	console.log("file name",fileName);
 
-	const p1Name = name;
-	const p2Name = baseBot;
-
 	// base case
-	console.log("copying files!");
-	await $`cp upload/${fileName} match-config/p1/src/app.js`;
-	await $`cp basebots/${baseBot} match-config/p2/src/app.js`;
-	console.log("starting docker!");
-	await $`export HOME=/connect4; mkdir -p HOME; cd match-config; docker compose up --build; docker compose down`;
+	let json = await playMatch(`upload/${fileName}`,`basebots/${baseBot}`);
+	const updatedRatings = await afterMatchLogic(json, name, baseBot);
 
-	while(!jsonDataExists){
-		await new Promise(r => setTimeout(r,10));
+	//match make
+	let matches = findMatch(updatedRatings.p1Rating, name);
+
+	for(const toPlay of matches){
+
+		const p2FileName = await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`;
+
+		json = await playMatch(`upload/${fileName}`,`upload/${p2FileName}`);
 	}
 
-	const json = jsonDataFromCurrentMatch;
-	jsonDataExists = false;
-	jsonDataFromCurrentMatch = null;
-	console.log("update database!");
-
-	let updateDB = true;
-	const flaggedTimeOverRun = 70;
-	const flaggedAbortedGamesThreshold = 10;
-
-	if(json.ranTooLong){
-		updateDB = false;
-		
-		const p1TimeRanPercent = json.p1TotalMoveTimeSeconds / json.timeRanSec * 100;
-		const p2TimeRanPercent = json.p2TotalMoveTimeSeconds / json.timeRanSec * 100;
-
-		if(p1TimeRanPercent > 75){
-			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
-		} else if(p2TimeRanPercent > 75){
-			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p2Name};`;
-		} else{
-			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
-			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p2Name};`;
-		}
-	}
-	if(json.abortedMatch){
-		updateDB = false;
-		if(json.p1AbortedGames >= flaggedAbortedGamesThreshold){
-			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
-		}
-		if(json.p2AbortedGames >= flaggedAbortedGamesThreshold){
-			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
-		}
-		console.log("match aborted");
-	}
-
-	if(updateDB){
-
-	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${name};`;
-	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name='baseBot';`;
-
-	console.log("update ratings!");
-
-	//update ratings
-	let p1Rating = (await db`SELECT rating FROM bot_data WHERE name=${name} LIMIT 1;`)[0].rating;
-	let p2Rating = (await db`SELECT rating FROM bot_data WHERE name='baseBot' LIMIT 1;`)[0].rating;
-
-	const p1ExpectedScore = expectedScore(p1Rating, p2Rating) * 10;
-	const p2ExpectedScore = expectedScore(p2Rating, p1Rating) * 10;
-
-	const p1ActualScore = (json.p1Wins + (json.ties / 2)) / 100;
-	const p2ActualScore = (json.p2Wins + (json.ties / 2)) / 100;
-
-	const k = 32;
-
-	const p1UpdatedRating = Math.round(p1Rating + (k * (p1ActualScore - p1ExpectedScore)));
-	const p2UpdatedRating = Math.round(p2Rating + (k * (p2ActualScore - p2ExpectedScore)));
-
-	console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
-	console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
-
-	await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${name};`;
-	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name='baseBot';`;
-
-	//console.log(await db`SELECT * FROM bot_data WHERE name=${name} LIMIT 1;`);
 	console.log("findMatch",await findMatch(100, name));
 	await reorgDB();	
 	setTimeout(async()=>runMatch(), 1 * 1000);
@@ -259,15 +276,14 @@ async function findMatch(rating, name, matchLimit=10){
 	let lowValue = rating - defualtIncrease/2;
 	let highValue = rating + defaultRange/2;
 
-
 	let matches;
 
 	while(true){
 		let posibleMatches;
 		if(curIterations>=4){
-			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} LIMIT ${matchLimit}`;	
+			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND name!=${baseBot} LIMIT ${matchLimit}`;	
 		} else{
-			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND rating>=${lowValue} AND rating<=${highValue} LIMIT ${matchLimit};`;
+			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND name!=${baseBot} AND rating>=${lowValue} AND rating<=${highValue} LIMIT ${matchLimit};`;
  		}
 		//console.log("posibleMatches",posibleMatches);
 		
