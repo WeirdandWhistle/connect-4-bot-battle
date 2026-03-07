@@ -263,9 +263,12 @@ async function runMatch(){
 
 	for(const toPlay of matches){
 
-		const p2FileName = (await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`)[0].rating;
-
+		const dbOut = (await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`);
+		console.log("dbOut",dbOut);
+		const p2FileName = dbOut[0].file_name;
+		console.log("p2FileName",p2FileName);
 		json = await playMatch(`upload/${fileName}`,`upload/${p2FileName}`);
+		await afterMatchLogic(json, name, toPlay);
 	}
 	}
 	await reorgDB();	
@@ -286,9 +289,9 @@ async function findMatch(rating, name, matchLimit=10){
 	while(true){
 		let posibleMatches;
 		if(curIterations>=4){
-			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND name!=${baseBot} LIMIT ${matchLimit}`;	
+			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND name!='baseBot' LIMIT ${matchLimit}`;	
 		} else{
-			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND name!=${baseBot} AND rating>=${lowValue} AND rating<=${highValue} LIMIT ${matchLimit};`;
+			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND name!='baseBot' AND rating>=${lowValue} AND rating<=${highValue} LIMIT ${matchLimit};`;
  		}
 		//console.log("posibleMatches",posibleMatches);
 		
