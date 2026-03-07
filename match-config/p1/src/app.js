@@ -50,14 +50,11 @@ async function move(req){
     let row = 0;
 
     while(true){
-        if(play(board,row,1) || row >= rows){
+        if(play(board,row,1)){
             break;
         } 
-        else if(row === rows - 1){
-            row = 1;
-        }
         else {
-            row += 2;
+            row++;
         }
         console.log("try row",row);
     }

@@ -11,12 +11,12 @@ services:
       - p2-net
       - to-api
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
   p1:
     build: ./p1
     logging:
       driver: json-file
-       options:
+      options:
         max-size: "3m"
         max-file: "1"
     networks:
@@ -32,7 +32,7 @@ services:
       driver: json-file
       options:
         max-file: "1"
-         max-size: "3m"
+        max-size: "3m"
     networks:
       - p2-net
     deploy:

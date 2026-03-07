@@ -219,8 +219,8 @@ async function afterMatchLogic(json,p1Name,p2Name){
 	const p1UpdatedRating = Math.round(p1Rating + (k * (p1ActualScore - p1ExpectedScore)));
 	const p2UpdatedRating = Math.round(p2Rating + (k * (p2ActualScore - p2ExpectedScore)));
 
-	// console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
-	// console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
+	console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
+	console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
 	console.log("update 1");
 	await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${p1Name};`; console.log("update 2");
 	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name=${p2Name};`;
