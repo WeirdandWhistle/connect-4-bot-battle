@@ -2,6 +2,7 @@ services:
   ref:
     build: ./ref
     logging:
+      driver: json-file
       options:
         max-size: "5m"
         max-file: "1"
@@ -14,6 +15,7 @@ services:
   p1:
     build: ./p1
     logging:
+      driver: json-file
        options:
         max-size: "3m"
         max-file: "1"
@@ -27,6 +29,7 @@ services:
   p2:
     build: ./p2
     logging:
+      driver: json-file
       options:
         max-file: "1"
          max-size: "3m"
