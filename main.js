@@ -148,7 +148,7 @@ async function playMatch(p1Path,p2Path){
 	await $`cp ${p2Path} match-config/p2/src/app.js`;
 	
 	const proc = Bun.spawn(["docker","compose","up","--build","--remove-orphans","--quiet-build","--abort-on-container-failure"],{
-		cwd: "./macth-config",
+		cwd: "./match-config",
 		env: {HOME: "/connect4"},
 	});
 
@@ -195,8 +195,9 @@ async function afterMatchLogic(json,p1Name,p2Name){
 	}
 
 	if(updateDB){
-
-	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p1Name};`;
+	console.log("wins 1");
+	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p1Name};`; 
+		console.log("wins 2");
 	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p2Name};`;
 
 	// console.log("update ratings!");
@@ -218,11 +219,13 @@ async function afterMatchLogic(json,p1Name,p2Name){
 
 	// console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
 	// console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
+	console.log("update 1");
+	await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${p1Name};`; console.log("update 2");
+	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name=${p2Name};`;
 
-	await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${p1Name};`;
-	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name='${p2Name};`;
-
+		console.log("def return smth");
 	return {p1Rating: p1UpdatedRating, p2Rating: p2UpdatedRating};
+	}
 }
 async function runMatch(){
 	//console.log("Checking match que...");
@@ -235,7 +238,7 @@ async function runMatch(){
 	const name = matchQue[0];
 	matchQue.shift();
 
-	const exists = await db`SELECT 1 FROM bot_data WHERE name=${name}`;
+	const exists = await db`SELECT 1 FROM bot_data WHERE name=${name};`;
 	console.log("does it?",exists);
 
 	if(exists.length === 0){
@@ -249,22 +252,24 @@ async function runMatch(){
 
 	// base case
 	let json = await playMatch(`upload/${fileName}`,`basebots/${baseBot}`);
-	const updatedRatings = await afterMatchLogic(json, name, baseBot);
-
+	const updatedRatings = await afterMatchLogic(json, name, "baseBot");
+	console.log("after aftermatch logic", updatedRatings);
 	//match make
-	let matches = findMatch(updatedRatings.p1Rating, name);
+	let matches = await findMatch(updatedRatings.p1Rating, name);
+	console.log("matches",matches);
+	if(matches.length != 0){
+
+	
 
 	for(const toPlay of matches){
 
-		const p2FileName = await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`;
+		const p2FileName = (await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`)[0].rating;
 
 		json = await playMatch(`upload/${fileName}`,`upload/${p2FileName}`);
 	}
-
-	console.log("findMatch",await findMatch(100, name));
+	}
 	await reorgDB();	
 	setTimeout(async()=>runMatch(), 1 * 1000);
-	}
 }
 async function findMatch(rating, name, matchLimit=10){
 	const defaultRange = 200;
@@ -298,7 +303,7 @@ async function findMatch(rating, name, matchLimit=10){
 		if(posibleMatches.count >= matchLimit){
 			return matches;
 		}
-		if(curIterations>maxIterations){
+		if(curIterations >= maxIterations){
 			return matches;
 		}
 		curIterations++;
