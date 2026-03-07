@@ -157,6 +157,8 @@ async function playMatch(p1Path,p2Path){
 		await new Promise(r => setTimeout(r,10));
 	}
 
+	await $`cd match-config; docker compose down`.quiet();
+
 	const json = jsonDataFromCurrentMatch;
 	jsonDataExists = false;
 	jsonDataFromCurrentMatch = null;
@@ -380,6 +382,8 @@ async function doTest() {
 	}
 
 	testCurrentlyRunning = false;
+
+	await $`cd test-config; docker compose down`.quiet();
 
 	for(let ws of testWS){
 		ws.send("TEST READY");

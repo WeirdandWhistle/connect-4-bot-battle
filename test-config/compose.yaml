@@ -1,6 +1,9 @@
 services:
   ref:
     build: ./ref
+    options:
+      max-size: "5m"
+      max-file: "1"
     networks:
       - p1-net
       - p2-net
@@ -9,6 +12,9 @@ services:
     - "host.docker.internal:host-gateway"
   p1:
     build: ./p1
+    options:
+      max-size: "3m"
+      max-file: "1"
     networks:
       - p1-net
     deploy:
@@ -18,6 +24,9 @@ services:
           memory: 256M
   p2:
     build: ./p2
+    options:
+      max-file: "1"
+      max-size: "3m"
     networks:
       - p2-net
     deploy:

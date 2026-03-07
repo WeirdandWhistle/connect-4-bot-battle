@@ -12,7 +12,7 @@ function play(board,row,color){
         return false;
     }
     if(board[0][row] != 0){
-        // console.log("top of the row is occupied");
+        // console.log("top of the row is occupied ");
         return false;
     }
     let playColumn = 0;
@@ -47,18 +47,14 @@ async function move(req){
     // console.log("got move requst");
     const json = await req.json();
     const board = json.board;
-    let row = 0;
-
+    let row;
     while(true){
+        row = Math.floor(Math.random() * rows);
         if(play(board,row,1)){
             break;
-        } 
-        else {
-            row++;
         }
-        console.log("try row",row);
     }
-    console.log(JSON.stringify({row: row}));
+    // console.log(JSON.stringify({row: row}));
 
     return new Response(JSON.stringify({row: row}));
 
