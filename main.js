@@ -244,14 +244,54 @@ async function runMatch(){
 	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name='baseBot';`;
 
 	//console.log(await db`SELECT * FROM bot_data WHERE name=${name} LIMIT 1;`);
+	console.log("findMatch",await findMatch(100, name));
 	await reorgDB();	
 	setTimeout(async()=>runMatch(), 1 * 1000);
+	}
+}
+async function findMatch(rating, name, matchLimit=10){
+	const defaultRange = 200;
+	const defualtIncrease = 50;
+	const maxIterations = 5;
+
+	let curIterations = 1;
+
+	let lowValue = rating - defualtIncrease/2;
+	let highValue = rating + defaultRange/2;
+
+
+	let matches;
+
+	while(true){
+		let posibleMatches;
+		if(curIterations>=4){
+			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} LIMIT ${matchLimit}`;	
+		} else{
+			posibleMatches = await db`SELECT name FROM bot_data WHERE name!=${name} AND rating>=${lowValue} AND rating<=${highValue} LIMIT ${matchLimit};`;
+ 		}
+		//console.log("posibleMatches",posibleMatches);
+		
+		matches = [];
+		for(let i = 0; i<posibleMatches.count;i++){
+			if(i>matchLimit-1){
+				break;
+			}
+			matches.push(posibleMatches[i].name);
+		}
+
+		if(posibleMatches.count >= matchLimit){
+			return matches;
+		}
+		if(curIterations>maxIterations){
+			return matches;
+		}
+		curIterations++;
 	}
 }
 
 async function reorgDB(){
 	const allNames = await db`SELECT name FROM bot_data`.values();
-	console.log("allnames",allNames);
+	//console.log("allnames",allNames);
 
 	let rankings = [];
 
