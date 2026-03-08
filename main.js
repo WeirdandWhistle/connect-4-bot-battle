@@ -173,8 +173,8 @@ async function afterMatchLogic(json,p1Name,p2Name){
 	if(json.ranTooLong){
 		updateDB = false;
 		
-		const p1TimeRanPercent = json.p1TotalMoveTimeSeconds / json.timeRanSec * 100;
-		const p2TimeRanPercent = json.p2TotalMoveTimeSeconds / json.timeRanSec * 100;
+		const p1TimeRanPercent = (json.p1TotalMoveTimeSeconds / json.timeRanSec) * 100;
+		const p2TimeRanPercent = (json.p2TotalMoveTimeSeconds / json.timeRanSec) * 100;
 
 		if(p1TimeRanPercent > flaggedTimeOverRun){
 			await db`UPDATE bot_data SET flagged=flagged+1 WHERE name=${p1Name};`;
@@ -197,37 +197,35 @@ async function afterMatchLogic(json,p1Name,p2Name){
 	}
 
 	if(updateDB){
-	console.log("wins 1");
-	await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p1Name};`; 
-		console.log("wins 2");
-	await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p2Name};`;
+		await db`UPDATE bot_data SET wins=wins+${json.p1Wins},losses=losses+${json.p1Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p1Name};`; 
+		await db`UPDATE bot_data SET wins=wins+${json.p2Wins},losses=losses+${json.p2Losses},ties=ties+${json.ties},games_played=games_played+1000 WHERE name=${p2Name};`;
 
-	// console.log("update ratings!");
+		// console.log("update ratings!");
 
-	//update ratings
-	const p1Rating = (await db`SELECT rating FROM bot_data WHERE name=${p1Name} LIMIT 1;`)[0].rating;
-	const p2Rating = (await db`SELECT rating FROM bot_data WHERE name=${p2Name} LIMIT 1;`)[0].rating;
+		//update ratings
+		const p1Rating = (await db`SELECT rating FROM bot_data WHERE name=${p1Name} LIMIT 1;`)[0].rating;
+		const p2Rating = (await db`SELECT rating FROM bot_data WHERE name=${p2Name} LIMIT 1;`)[0].rating;
 
-	const p1ExpectedScore = expectedScore(p1Rating, p2Rating) * 10;
-	const p2ExpectedScore = expectedScore(p2Rating, p1Rating) * 10;
+		const p1ExpectedScore = expectedScore(p1Rating, p2Rating) * 10;
+		const p2ExpectedScore = expectedScore(p2Rating, p1Rating) * 10;
 
-	const p1ActualScore = (json.p1Wins + (json.ties / 2)) / 100;
-	const p2ActualScore = (json.p2Wins + (json.ties / 2)) / 100;
+		const p1ActualScore = (json.p1Wins + (json.ties / 2)) / 100;
+		const p2ActualScore = (json.p2Wins + (json.ties / 2)) / 100;
 
-	const k = 32;
+		const k = 32;
 
-	const p1UpdatedRating = Math.round(p1Rating + (k * (p1ActualScore - p1ExpectedScore)));
-	const p2UpdatedRating = Math.round(p2Rating + (k * (p2ActualScore - p2ExpectedScore)));
+		const p1UpdatedRating = Math.round(p1Rating + (k * (p1ActualScore - p1ExpectedScore)));
+		const p2UpdatedRating = Math.round(p2Rating + (k * (p2ActualScore - p2ExpectedScore)));
 
-	console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
-	console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
-	console.log("update 1");
-	await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${p1Name};`; console.log("update 2");
-	await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name=${p2Name};`;
+		console.log("p1 was expected score was",p1ExpectedScore,"and their actual score was",p1ActualScore,"and their raing has been updated to",p1UpdatedRating);
+		console.log("p2 was expected score was",p2ExpectedScore,"and their actual score was",p2ActualScore,"and their raing has been updated to",p2UpdatedRating);
 
-		console.log("def return smth");
-	return {p1Rating: p1UpdatedRating, p2Rating: p2UpdatedRating};
+		await db`UPDATE bot_data SET rating=${p1UpdatedRating} WHERE name=${p1Name};`;
+		await db`UPDATE bot_data SET rating=${p2UpdatedRating} WHERE name=${p2Name};`;
+
+		return {p1Rating: p1UpdatedRating, p2Rating: p2UpdatedRating, ok: true};
 	}
+	return { ok: false};
 }
 async function runMatch(){
 	//console.log("Checking match que...");
@@ -257,21 +255,21 @@ async function runMatch(){
 	const updatedRatings = await afterMatchLogic(json, name, "baseBot");
 	console.log("after aftermatch logic", updatedRatings);
 	//match make
-	let matches = await findMatch(updatedRatings.p1Rating, name);
-	console.log("matches",matches);
-	if(matches.length != 0){
+	if(!updatedRatings.ok){
+		let matches = await findMatch(updatedRatings.p1Rating, name);
+		console.log("matches",matches);
+		if(matches.length != 0){	
 
-	
+			for(const toPlay of matches){
 
-	for(const toPlay of matches){
-
-		const dbOut = (await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`);
-		console.log("dbOut",dbOut);
-		const p2FileName = dbOut[0].file_name;
-		console.log("p2FileName",p2FileName);
-		json = await playMatch(`upload/${fileName}`,`upload/${p2FileName}`);
-		await afterMatchLogic(json, name, toPlay);
-	}
+				const dbOut = (await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`);
+				console.log("dbOut",dbOut);
+				const p2FileName = dbOut[0].file_name;
+				console.log("p2FileName",p2FileName);
+				json = await playMatch(`upload/${fileName}`,`upload/${p2FileName}`);
+				await afterMatchLogic(json, name, toPlay);
+			}
+		}
 	}
 	await reorgDB();	
 	setTimeout(async()=>runMatch(), 1 * 1000);

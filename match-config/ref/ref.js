@@ -217,8 +217,9 @@ async function init(){
 	    // console.log("who goes first?",firstMove);
 	    while(1){
             
-		if(nanoseconds() - runningTime > 1E9 * 30){
+		if(nanoseconds() - runningTime > 1E9 * 15){
 			ranTooLong = true;
+			break;
 		}
 		
             if(!canPlay()){
@@ -265,7 +266,7 @@ async function init(){
             
 
             if(!p1First){
-                if(isWin(2)){
+                if(isWin(1)){
                     p2Wins++;
                     p1Losses++;
                     break;
@@ -313,7 +314,7 @@ async function init(){
                     break;
                 }
             } else {
-                if(isWin(1)){
+                if(isWin(2)){
                     p1Wins++;
                     p2Losses++;
                     break;
@@ -325,19 +326,23 @@ async function init(){
         peakGameTimeNano = Math.max(peakGameTimeNano, nanoseconds() - gameTimeNano);
         minGameTimeNano = Math.min(minGameTimeNano, nanoseconds() - gameTimeNano);
 
+	if(ranTooLong){
+		break;
+	}
+
         if(aborted){
             console.log("game aborted!");
         } else{
-            playedGames++;
+        	playedGames++;
 		const tmpMove = firstMove;
 		firstMove = secondMove;
 		secondMove = tmpMove;
 
-        if(p1First){
-            p1First = false;
-        } else{
-            p1First = true;
-        }
+        	if(p1First){
+           	 p1First = false;
+        	} else{
+            	p1First = true;
+       		}
         }
 
         if(p1AbortedGames + p2AbortedGames > maxAbortedGames){
@@ -355,6 +360,7 @@ async function init(){
         await resetp1;
         await resetp2;
         } catch (err){
+		abortedMatch = true;
             console.log("error resting games",err);
             break;
         }

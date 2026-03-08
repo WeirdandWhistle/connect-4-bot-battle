@@ -173,7 +173,7 @@ function canPlay(){
 //         "/move": req=> move(req)
 //     }
 // });
-const totalGames = 500;
+const totalGames = 1000;
 let playedGames = 0;
 
 let p1Wins = 0;
@@ -194,13 +194,16 @@ async function init(){
     await startp2;
     let totalTurns = 0;
     let peakGameTimeNano = 0;
-    let minGameTimeNano = 1000000;
+    let minGameTimeNano = 1000;
 
 	let runningTime = nanoseconds();
 	let ranTooLong = false;
 	
 	let p1AbortedGames = 0;
 	let p2AbortedGames = 0;
+
+        let p1RunningMoveTime = 0;
+        let p2RunningMoveTime = 0;
 
 	    let firstMove = "p1";
 	    let secondMove = "p2";
@@ -214,8 +217,9 @@ async function init(){
 	    // console.log("who goes first?",firstMove);
 	    while(1){
             
-		if(nanoseconds() - runningTime > 1E9 * 30){
+		if(nanoseconds() - runningTime > 1E9 * 15){
 			ranTooLong = true;
+			break;
 		}
 		
             if(!canPlay()){
@@ -227,6 +231,7 @@ async function init(){
 
             // printBoard();
             // console.log("ref board -> p1",JSON.stringify({board : board}));
+            const firstMoveStartNano = nanoseconds();
             try {
             const resp1 = await fetch(`http://${firstMove}:3001/move`,{
                 method: "POST",
@@ -236,7 +241,7 @@ async function init(){
 
             const movep1 = await resp1.json();
             if(!play(movep1.row, 1)){
-                console.log("bad move!");
+                // console.log("bad move!");
                 aborted = true;
 		    p1First ? p1AbortedGames++ : p2AbortedGames++;
                 break;
@@ -248,6 +253,11 @@ async function init(){
 		        p1First ? p1AbortedGames++ : p2AbortedGames++;
 		        break;
             }
+            if(p1First){
+                p1RunningMoveTime += nanoseconds() - firstMoveStartNano;
+            } else {
+                p2RunningMoveTime += nanoseconds() - firstMoveStartNano;
+            }
             
 
             // console.log("reading p1 move");
@@ -256,7 +266,7 @@ async function init(){
             
 
             if(!p1First){
-                if(isWin(2)){
+                if(isWin(1)){
                     p2Wins++;
                     p1Losses++;
                     break;
@@ -268,6 +278,7 @@ async function init(){
                     break;
                 }
             }
+            const secondMoveStartNano = nanoseconds();
             try {
             const resp2 = await fetch(`http://${secondMove}:3001/move`,{
                 method: "POST",
@@ -277,7 +288,7 @@ async function init(){
 
              const movep2 = await resp2.json();
             if(!play(movep2.row,2)){
-                console.log("bad move!");
+                // console.log("bad move!");
                 aborted = true;
 		    p1First ? p1AbortedGames++ : p2AbortedGames++;
 		    break;
@@ -287,6 +298,12 @@ async function init(){
 		    p1First ? p1AbortedGames++ : p2AbortedGames++;
 		    break;
         }
+
+        if(!p1First){
+                p1RunningMoveTime += nanoseconds() - secondMoveStartNano;
+            } else {
+                p2RunningMoveTime += nanoseconds() - secondMoveStartNano;
+            }
             // console.log("readig p2 move");
            
             totalTurns++;
@@ -297,7 +314,7 @@ async function init(){
                     break;
                 }
             } else {
-                if(isWin(1)){
+                if(isWin(2)){
                     p1Wins++;
                     p2Losses++;
                     break;
@@ -309,13 +326,23 @@ async function init(){
         peakGameTimeNano = Math.max(peakGameTimeNano, nanoseconds() - gameTimeNano);
         minGameTimeNano = Math.min(minGameTimeNano, nanoseconds() - gameTimeNano);
 
+	if(ranTooLong){
+		break;
+	}
+
         if(aborted){
             console.log("game aborted!");
         } else{
-            playedGames++;
+        	playedGames++;
 		const tmpMove = firstMove;
 		firstMove = secondMove;
 		secondMove = tmpMove;
+
+        	if(p1First){
+           	 p1First = false;
+        	} else{
+            	p1First = true;
+       		}
         }
 
         if(p1AbortedGames + p2AbortedGames > maxAbortedGames){
@@ -325,7 +352,7 @@ async function init(){
         }
 
         board = Array.from({ length: columns }, () => new Array(rows).fill(0));
-        //console.log("resetting games!!!");
+        // console.log("resetting games!!!");
         try{
         const resetp1 = fetch("http://p1:3001/reset",{ signal: AbortSignal.timeout(500),});
         const resetp2 = fetch("http://p2:3001/reset",{ signal: AbortSignal.timeout(500),});
@@ -333,6 +360,7 @@ async function init(){
         await resetp1;
         await resetp2;
         } catch (err){
+		abortedMatch = true;
             console.log("error resting games",err);
             break;
         }
@@ -342,8 +370,8 @@ async function init(){
     console.log(`p2 stats wins ${p2Wins}, losses ${p2Losses}`);
     console.log(`ties ${ties} played games ${playedGames}`);
 
-    fetch("http://p1:3001/end",{ signal: AbortSignal.timeout(500),});
-    fetch("http://p2:3001/end",{ signal: AbortSignal.timeout(500),});
+    fetch("http://p1:3001/end");
+    fetch("http://p2:3001/end");
 
     const endTimeNano = nanoseconds();
     const timeRanNano = endTimeNano - startTimeNano;
@@ -354,12 +382,18 @@ async function init(){
     const peakGameTimeSec = peakGameTimeNano / 1E9;
     const minGameTimeSec = minGameTimeNano / 1E9;
 
+    const p1TotalMoveTimeSeconds = p1RunningMoveTime / 1E9;
+    const p2TotalMoveTimeSeconds = p2RunningMoveTime / 1E9;
+
     const returnJson = {p1Wins: p1Wins, p1Losses: p1Losses, p2Wins: p2Wins, p2Losses: p2Losses, ties: ties,
         timeRanSec: timeRanSec, totalTurns: totalTurns, avgTurnTimeSec: avgTurnTimeSec, avgTimePerGame: avgTimePerGame,
         peakGameTimeSec: peakGameTimeSec, minGameTimeSec: minGameTimeSec, p1AbortedGames: p1AbortedGames, p2AbortedGames,
-    	ranTooLong: ranTooLong, abortedMatch: abortedMatch};
+    	ranTooLong: ranTooLong, abortedMatch: abortedMatch,
+        p1TotalMoveTimeSeconds: p1TotalMoveTimeSeconds, p2TotalMoveTimeSeconds: p2TotalMoveTimeSeconds,
+    };
 
-	console.log(returnJson);
+	console.log(JSON.stringify(returnJson));
+
 }
 
 init();
