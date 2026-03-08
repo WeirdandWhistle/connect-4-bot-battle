@@ -259,9 +259,10 @@ async function runMatch(){
 	const updatedRatings = await afterMatchLogic(json, name, "baseBot");
 	console.log("after aftermatch logic", updatedRatings);
 	//match make
-	if(!updatedRatings.ok){
+	if(updatedRatings.ok){
+		console.log("playing the loop");
 		let matches = await findMatch(updatedRatings.p1Rating, name);
-		console.log("match make out",matches);
+		console.log("match make list",matches);
 		if(matches.length != 0){	
 
 			for(const toPlay of matches){
@@ -274,6 +275,8 @@ async function runMatch(){
 				await afterMatchLogic(json, name, toPlay);
 			}
 		}
+	} else{
+		console.log("logic was not OK!");
 	}
 	await reorgDB();	
 	setTimeout(async()=>runMatch(), 1 * 1000);
