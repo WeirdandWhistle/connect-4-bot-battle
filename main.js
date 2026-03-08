@@ -32,8 +32,8 @@ async function input(){
 }
 
 async function record(req){
-	console.log("record headers",req.headers);
-    console.log("API recoreded");
+	//console.log("record headers",req.headers);
+    //console.log("API recoreded");
     const json = await req.json();
     console.log("raw json",json);
 
@@ -92,6 +92,7 @@ async function play(req){
 	const name = query.get("name");
 	
 	matchQue.push(name);
+	console.log("added",name,"to match que");
 	
 	return new Response("OK");
 }
@@ -150,6 +151,8 @@ async function playMatch(p1Path,p2Path){
 	const proc = Bun.spawn(["docker","compose","up","--build","--remove-orphans","--quiet-build","--abort-on-container-failure"],{
 		cwd: "./match-config",
 		env: {HOME: "/connect4"},
+		stderr: "ignore",
+		stdout: "ignore",
 	});
 
 
@@ -172,6 +175,7 @@ async function afterMatchLogic(json,p1Name,p2Name){
 
 	if(json.ranTooLong){
 		updateDB = false;
+		console.log("ranTooLong");
 		
 		const p1TimeRanPercent = (json.p1TotalMoveTimeSeconds / json.timeRanSec) * 100;
 		const p2TimeRanPercent = (json.p2TotalMoveTimeSeconds / json.timeRanSec) * 100;
@@ -233,22 +237,22 @@ async function runMatch(){
 		setTimeout(async () => runMatch(), 10 * 1000);
 		return;
 	}
-	console.log("running match...");
+	console.log("================= running match... ==================");
 
 	const name = matchQue[0];
 	matchQue.shift();
 
 	const exists = await db`SELECT 1 FROM bot_data WHERE name=${name};`;
-	console.log("does it?",exists);
+	//console.log("does it?",exists);
 
 	if(exists.length === 0){
-		console.log("no it doesn;t");
+		//console.log("no it doesn;t");
 		setTimeout(async () => runMatch(),100);
 		return;
 	}
 
 	const fileName = (await db`SELECT file_name FROM bot_data WHERE name=${name} LIMIT 1;`)[0].file_name;
-	console.log("file name",fileName);
+	console.log("file that is now playing",fileName);
 
 	// base case
 	let json = await playMatch(`upload/${fileName}`,`basebots/${baseBot}`);
@@ -257,15 +261,15 @@ async function runMatch(){
 	//match make
 	if(!updatedRatings.ok){
 		let matches = await findMatch(updatedRatings.p1Rating, name);
-		console.log("matches",matches);
+		console.log("match make out",matches);
 		if(matches.length != 0){	
 
 			for(const toPlay of matches){
 
 				const dbOut = (await db`SELECT file_name FROM bot_data WHERE name=${toPlay} LIMIT 1;`);
-				console.log("dbOut",dbOut);
+				//console.log("dbOut",dbOut);
 				const p2FileName = dbOut[0].file_name;
-				console.log("p2FileName",p2FileName);
+				console.log("now playing agsint",p2FileName);
 				json = await playMatch(`upload/${fileName}`,`upload/${p2FileName}`);
 				await afterMatchLogic(json, name, toPlay);
 			}
