@@ -342,7 +342,7 @@ async function reorgDB(){
 let testCurrentlyRunning = false;
 
 async function testStart(req){
-	console.log("trying to start smth");
+	console.log("trying to start test!");
 	if(testCurrentlyRunning){
 		return new Response("TEST CURRENTLY RUNNING",{status:401});
 	}
@@ -356,21 +356,31 @@ async function testStart(req){
     	}
 	
 	await Bun.write(`test-config/p1/src/app.js`,file);
-
+	console.log("do test.");
 	doTest();
 
 	return new Response("OK");
 }
 async function doTest() {
+	const controller = new AbortController();
+	const { signal } = controller;	
+	console.log("====== do test =======");
 	const proc = Bun.spawn(["docker","compose","up","--build"],{
 		cwd: "./test-config",
 		env: {HOME: "/connect4"},
+		signal,
 
 	});
 	console.log(proc.stdout);
 
+	const abortLoopTimeout = setTimeout(() =>{
+		signal.abort();
+		console.log("aborted forLoop");
+	},15 * 1000);
+
 	const textStream = proc.stdout.pipeThrough(new TextDecoderStream());
 	let sendingData = false;
+	try{
 	for await (const chunk of textStream){
 		//`console.log("new checnk", chunk);
 		//console.log(chunk);
@@ -384,6 +394,10 @@ async function doTest() {
 			}
 		}
 
+	}
+	} finally {
+		clearTimeout(abortLoopTimeout);
+		console.log("safely exited for loop.");
 	}
 
 	testCurrentlyRunning = false;
