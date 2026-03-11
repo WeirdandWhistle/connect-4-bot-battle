@@ -374,7 +374,7 @@ async function doTest() {
 	console.log(proc.stdout);
 
 	const abortLoopTimeout = setTimeout(() =>{
-		signal.abort();
+		controller.abort();
 		console.log("aborted forLoop");
 	},15 * 1000);
 
