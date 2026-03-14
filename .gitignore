@@ -36,3 +36,5 @@ upload
 .db
 database.db
 .docker
+
+src
