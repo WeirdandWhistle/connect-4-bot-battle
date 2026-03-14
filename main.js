@@ -376,7 +376,7 @@ async function doTest() {
 	const abortLoopTimeout = setTimeout(() =>{
 		controller.abort();
 		console.log("aborted forLoop");
-	},15 * 1000);
+	},10 * 1000);
 
 	const textStream = proc.stdout.pipeThrough(new TextDecoderStream());
 	let sendingData = false;
@@ -386,7 +386,8 @@ async function doTest() {
 		//console.log(chunk);
 		if(sendingData){
 		for(const ws of testWS){
-			ws.send(chunk);
+			const data = {status:"CHUNK", chunk : chunk};
+			ws.send(JSON.stringify(data));
 		}
 		} else{
 			if(chunk.includes("start!")){
@@ -405,7 +406,7 @@ async function doTest() {
 	await $`cd test-config; docker compose down`.quiet();
 
 	for(let ws of testWS){
-		ws.send("TEST READY");
+		ws.send(JSON.stringify({status:"TEST READY"}));
 	}
 }
 
