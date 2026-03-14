@@ -235,7 +235,7 @@ async function init(){
             try {
             const resp1 = await fetch(`http://${firstMove}:3001/move`,{
                 method: "POST",
-                body: JSON.stringify({board : board}),
+                body: JSON.stringify({board : board, color: 1}),
                 signal: AbortSignal.timeout(500),
             });
 
@@ -259,6 +259,10 @@ async function init(){
                 p2RunningMoveTime += nanoseconds() - firstMoveStartNano;
             }
             
+            if(nanoseconds() - runningTime > 1E9 * 15){
+			    ranTooLong = true;
+			    break;
+		    }   
 
             // console.log("reading p1 move");
             // const textp1 = await resp1.text();
@@ -282,7 +286,7 @@ async function init(){
             try {
             const resp2 = await fetch(`http://${secondMove}:3001/move`,{
                 method: "POST",
-                body: JSON.stringify({board: board}),
+                body: JSON.stringify({board: board, color: 2}),
                 signal: AbortSignal.timeout(500),
             });
 
@@ -393,7 +397,6 @@ async function init(){
     };
 
 	console.log(JSON.stringify(returnJson));
-
 }
 
 init();
