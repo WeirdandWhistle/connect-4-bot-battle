@@ -5,7 +5,7 @@
 	</head>
 	<body>
 		<div class="main-heading">
-			<h1>Quickstart Guide</h1>
+			<h1>Quickstart Guide / Docs</h1>
 			<p>
 			This Guide/Docs will teach you how to create your first connect4 bot acording to the specs defined by me, here.
 			You will learn how to upload a template bot, and make your own bot.
@@ -90,6 +90,7 @@ async function move(req){
     // console.log("got move request");
     const json = await req.json();
     const board = json.board;
+	const color = json.color;
     let row;
     while(true){
 
@@ -97,7 +98,7 @@ async function move(req){
         row = Math.floor(Math.random() * rows);
 
 	//---- part 2 ----
-        if(play(board,row,1)){
+        if(play(board,row,color)){
             break;
         }
     }

@@ -25,7 +25,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 64M
   p2:
     build: ./p2
     logging:
@@ -39,7 +39,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 64M
 
 networks:
   p1-net:

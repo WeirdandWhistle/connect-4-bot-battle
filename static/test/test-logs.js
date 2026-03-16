@@ -7,7 +7,9 @@ const logs = document.getElementById("logs");
 async function uploadAndTest(){
     status.innerHTML = "WORKING";
 
-    const socket = new WebSocket("wss://connect4.whynotjava.net/api/test/ws");
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const host = window.location.host; 
+    const socket = new WebSocket(`${protocol}${host}/api/test/ws`);
 
     socket.onopen = (event) => {
         /* Connection established */
@@ -15,10 +17,11 @@ async function uploadAndTest(){
     };
     socket.onmessage = (event) => {
         /* Message received */
-	    if(event.data === "TEST READY"){
-		status.innerHTML = "DONE";	
+        const data = JSON.parse(event);
+	    if(data.status === "TEST READY"){
+		status.innerHTML = "DONE! READY FOR A NEW UPLOAD";	
 	    } else {
-		    if(event.data.includes("init...")){
+		    if(data.chunk.includes("init...")){
 			status.innerHTML = "CONNECTED";
 		    }
         	console.log("message recived!");
@@ -31,7 +34,7 @@ async function uploadAndTest(){
     };
     socket.onclose = (event) => {
         /* Connection closed */
-	    status.innerHTML = "HTML CLOSED";
+	    status.innerHTML = "WEBSOCKET CLOSED";
     };
 
     const formData = new FormData();
