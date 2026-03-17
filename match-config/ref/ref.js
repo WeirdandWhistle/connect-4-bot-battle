@@ -269,7 +269,7 @@ async function init(){
             // console.log("p1 text!",textp1);
             
 
-            if(!p1First){
+            if(p1First){
                 if(isWin(1)){
                     p2Wins++;
                     p1Losses++;
@@ -311,7 +311,7 @@ async function init(){
             // console.log("readig p2 move");
            
             totalTurns++;
-            if(!p1First){
+            if(p1First){
                 if(isWin(2)){
                     p2Wins++;
                     p1Losses++;

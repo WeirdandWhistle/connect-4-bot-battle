@@ -376,6 +376,9 @@ async function doTest() {
 	const abortLoopTimeout = setTimeout(() =>{
 		controller.abort();
 		console.log("aborted forLoop");
+		for(const ws of testWS){
+			ws.send(JSON.stringify({chunck:"PLAYER OVER RAN TIME LIMIT",status:"ERROR"}));
+		}
 	},10 * 1000);
 
 	const textStream = proc.stdout.pipeThrough(new TextDecoderStream());
