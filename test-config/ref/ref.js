@@ -271,14 +271,14 @@ async function init(){
 
             if(p1First){
                 if(isWin(1)){
-                    p2Wins++;
-                    p1Losses++;
+                    p1Wins++;
+                    p2Losses++;
                     break;
                 }
             } else {
                 if(isWin(1)){
-                    p1Wins++;
-                    p2Losses++;
+                    p2Wins++;
+                    p1Losses++;
                     break;
                 }
             }
@@ -313,14 +313,14 @@ async function init(){
             totalTurns++;
             if(p1First){
                 if(isWin(2)){
-                    p2Wins++;
-                    p1Losses++;
+                    p1Wins++;
+                    p2Losses++;
                     break;
                 }
             } else {
                 if(isWin(2)){
-                    p1Wins++;
-                    p2Losses++;
+                    p2Wins++;
+                    p1Losses++;
                     break;
                 }
             }
@@ -397,6 +397,11 @@ async function init(){
     };
 
 	console.log(JSON.stringify(returnJson));
+
+    fetch("http://host.docker.internal:5000/api/record",{
+        method: "POST",
+        body: JSON.stringify(returnJson)
+    });
 
 }
 
